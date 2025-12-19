@@ -1,0 +1,62 @@
+# Prerequisites
+*.d
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+# 如果你的 bin 資料夾需要依賴 dll 才能執行，且你不打算讓人自己編譯 dll，可能需要註解掉下面這行
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+# 下面這行會忽略所有 .lib 檔。如果你有必要的第三方 lib 需要上傳，請用 git add -f 強制加入，或是在這裡註解掉
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Release
+*.tar
+*.zip
+
+# Build Directories (CMake & VS)
+build/
+bin/
+x64/
+Debug/
+Release/
+
+# CMake generated files (in case you ran cmake in root)
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Visual Studio (Code)
+.vs/
+# .vscode 通常建議上傳 tasks.json/launch.json 方便協作，但如果你不想上傳個人設定，可以忽略
+.vscode/
+*.user
+*.suo
+*.sln
+*.vcxproj
+*.vcxproj.filters
+
+# ImGui configuration
+imgui.ini
+
+# OS generated files
+.DS_Store
+Thumbs.db
