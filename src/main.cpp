@@ -819,6 +819,43 @@ int main() {
 
       ImGui::End();
     }
+
+    // Funiture List
+    {
+      static float spawnPos[3] = {0.0f, 0.0f, 0.0f};
+      static float spawnScale = 1.0f;
+      
+      //Settings the position of Menu
+      ImGui::SetNextWindowPos(ImVec2(50, 0), ImGuiCond_FirstUseEver);
+      ImGui::SetNextWindowSize(ImVec2(300, 400), ImGuiCond_FirstUseEver);
+      ImGui::Begin("Furniture Menu");
+
+      // 調整生成位置與大小
+      ImGui::Text("Spawn Settings");
+      ImGui::DragFloat("Pos X", &spawnPos[0], 0.1f, 0.0f, 8.1f);
+      spawnPos[1] = 0.0f; 
+      ImGui::DragFloat("Pos Z", &spawnPos[2], 0.1f, 0.0f, 5.1f);
+      ImGui::DragFloat("Scale", &spawnScale, 0.05f, 0.1f, 5.0f);
+
+      ImGui::Separator();
+      ImGui::Text("Select Item to Add:");
+
+      // --- 按鈕 1: Robot ---
+      if (ImGui::Button("Add Robot", ImVec2(100, 50))) {
+        // 計算變換矩陣 (位置 + 縮放)
+        glm::mat4 t = glm::translate(glm::mat4(1.0f), glm::vec3(spawnPos[0], spawnPos[1], spawnPos[2]));
+        t = glm::scale(t, glm::vec3(spawnScale));
+        
+        // Robot 對應 loadModels 中的 index 5
+        Object* newObj = new Object(5, t);
+        newObj->material = mFlatwhite;
+        ctx.objects.push_back(newObj);
+      }
+
+      ImGui::SameLine(); // 讓下一個按鈕排在右邊
+      ImGui::Separator();
+      ImGui::End(); 
+    }
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
