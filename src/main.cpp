@@ -37,7 +37,8 @@ struct FurnitureItem{
 };
 
 std::vector<FurnitureItem> furnitureList = {
-  { "TV", "../assets/models/tv/tv.obj", "../assets/models/tv/tv.png", 1.0f, -1 }
+  { "TV", "../assets/models/tv/tv.obj", "../assets/models/tv/tv.png", 1.0f, -1 },
+  { "Sofa", "../assets/models/sofa/Sofa.obj", "../assets/models/sofa/textures/SofaBaseColor.png", 0.001f, -1 }
 };
 
 Context ctx;
