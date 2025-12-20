@@ -106,23 +106,6 @@ void loadPrograms() {
 }
 
 Model* createBottle() {
-  /* TODO#1-1: Add the bottle model
-   *           1. Create a model by reading the model file "../assets/models/bottle/bottle.obj" with the object
-   * loader(Model::fromObjectFile()) you write.
-   *           2. Add the texture "../assets/models/bottle/bottle.jpg" to the model.
-   *           3. Do transform(rotation & scale) to the model.
-   *           4. Set the drawMode for this model
-   * Note:
-   *           You should finish implement the object loader(Model::fromObjectFile()) first.
-   *           You can refer to the Model class structure in model.h.
-   * Hint:
-   *           Model* m = Model::fromObjectFile();
-   *           m->textures.push_back();
-   *           m->modelMatrix = glm::scale(m->modelMatrix, glm::vec3(0.05f, 0.05f, 0.05f));
-   *           m->modelMatrix = glm::rotate(m->modelMatrix, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-   *           m->modelMatrix = glm::rotate(m->modelMatrix, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-   *           m->drawMode =
-   */
   Model* m = Model::fromObjectFile("../assets/models/bottle/bottle.obj");
   GLuint BottleTexture = createTexture("../assets/models/bottle/bottle.jpg");
   m->textures.push_back(BottleTexture);
@@ -154,14 +137,6 @@ Model* createRobot() {
 }
 
 Model* createPlane() {
-  /* TODO#1-2: Add a plane model
-   *           1. Create a model and manually set plane positions, normals, texcoords
-   *           2. Add texure "../assets/models/Wood_maps/AT_Wood.jpg"
-   *           3. Set m->numVertex, m->drawMode
-   * Note:
-   *           GL_TEXTURE_WRAP is set to GL_REPEAT in createTexture, you may need to know
-   *           what this means to set m->textures correctly
-   */
   Model* m = new Model();
   GLuint PlaneTexture = createTexture("../assets/models/Wood_maps/AT_Wood.jpg");
   float pos[] = {
@@ -209,13 +184,6 @@ Model* createBezierVaseModel() {
   float p2 = 0.2f;  // Control point 2
   float p3 = 0.1f;  // Radius at neck
 
-  /* TODO#1-3: Add a vase outer surface model
-   *           1. Create a model and manually set vase positions, normals, texcoords
-   *           2. Add texure "../assets/models/Vase/Vase.jpg"
-   *           3. Set m->numVertex, m->drawMode
-   * Note:
-   *           You should refer to the cubic bezier curve function bezier().
-   */
   Model* vase = new Model();
   for (int h = 0; h < height_segments; h++) {
     float t0 = static_cast<float>(h) / height_segments;
@@ -315,13 +283,6 @@ Model* createBezierVaseInnerModel() {
   float p3 = 0.1f;  // Radius at neck
 
   const float thicknessScale = 0.9f;
-  /* TODO#1-4: Add a vase inner surface model
-   *           1. Create a model and manually set vase positions, normals, texcoords
-   *           2. Add texure "../assets/models/Vase/Vase2.jpg"
-   *           3. Set m->numVertex, m->drawMode
-   * Note:
-   *           You should refer to the cubic bezier curve function bezier().
-   */
   Model* vase = new Model();
   for (int h = 0; h < height_segments; ++h) {
     float t0 = static_cast<float>(h) / height_segments;
@@ -342,9 +303,8 @@ Model* createBezierVaseInnerModel() {
       glm::vec3 p10(r1 * cos(a0), y1, r1 * sin(a0));
       glm::vec3 p11(r1 * cos(a1), y1, r1 * sin(a1));
 
-      // ����~�����k�V�A�A���������¤�
       glm::vec3 nOuter = glm::normalize(glm::cross(p10 - p00, p11 - p00));
-      glm::vec3 n = -nOuter;  //  normal �¤�
+      glm::vec3 n = -nOuter;  
 
       float u0 = static_cast<float>(i) / segments;
       float u1 = static_cast<float>(i + 1) / segments;
@@ -356,8 +316,6 @@ Model* createBezierVaseInnerModel() {
       glm::vec2 t10(u0, v1);
       glm::vec2 t11(u1, v1);
 
-      // front face �¤�
-      // �T���� 1�Gp00, p11, p10
       vase->positions.push_back(p00.x);
       vase->positions.push_back(p00.y);
       vase->positions.push_back(p00.z);
@@ -413,13 +371,6 @@ Model* createBezierVaseInnerModel() {
 }
 
 Model* createBezierVaseBottomModel() {
-  /* TODO#1-5: Add a vase bottom surface model
-   *           1. Create a model and manually set vase positions, normals, texcoords
-   *           2. Add texure "../assets/models/Vase/Vase2.jpg"
-   *           3. Set m->numVertex, m->drawMode
-   * Note:
-   *           You should refer to the cubic bezier curve function bezier().
-   */
   const int segments = 36;
   float height = 1.0f;
 
@@ -463,8 +414,7 @@ Model* createBezierVaseBottomModel() {
     m->texcoords.push_back(v);
   }
 
-  // �� triangle fan �e�Gcenter + (i, i+1)
-  m->numVertex = segments * 3;  // 1 ���� 1 �T���� = 3 ���I
+  m->numVertex = segments * 3;  
   m->drawMode = GL_TRIANGLES;
 
   std::vector<float> pos2, nor2, tex2;
@@ -507,12 +457,6 @@ Model* createBezierVaseBottomModel() {
 }
 
 void loadModels() {
-  /* TODO#2-1: Push the model to ctx.models
-   * Note:
-   *    You can refer to the context class in context.h and model class in model.h
-   * Hint:
-        ctx.models.push_back();
-   */
   ctx.models.push_back(createPlane());
   ctx.models.push_back(createBottle());
   ctx.models.push_back(createBezierVaseModel());
@@ -524,13 +468,6 @@ void loadModels() {
 float robot_x = 0.0f;
 float robot_z = 0.0f;
 void setupObjects() {
-  /* TODO#2-2: Set up the object by the model vector
-   * Note:
-   *    You can refer to the context class in context.h and objects structure in model.h
-   * Hint:
-   *    ctx.objects.push_back(new Object(0, glm::translate(glm::identity<glm::mat4>(), glm::vec3(1.5, 0.4, 3))));
-   *    (*ctx.objects.rbegin())->material = mMirror;
-   */
   glm::mat4 vaseform = glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 0.0f, 3.0f));
   glm::mat4 robotform = glm::translate(glm::mat4(1.0f), glm::vec3(robot_x, 0.0f, robot_z));
   ctx.objects.push_back(new Object(0, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, 0.0, 0.0))));
@@ -553,6 +490,7 @@ int main() {
   glfwSetWindowTitle(window, "CG-Final-Project");
 
   g_isolatedViewer.init(window);
+  glfwSetWindowTitle(window, "CGFinalProject");
 
   // Init Camera helper
   Camera camera(glm::vec3(0, 2, 5));
