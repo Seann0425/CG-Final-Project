@@ -9,6 +9,7 @@ set(HW2_SOURCE
   ${HW2_SOURCE_DIR}/Programs/example.cpp
   ${HW2_SOURCE_DIR}/Programs/basic.cpp
   ${HW2_SOURCE_DIR}/Programs/light.cpp
+  ${HW2_SOURCE_DIR}/isolated_viewer.cpp
 )
 
 set(HW2_HEADER
@@ -19,6 +20,7 @@ set(HW2_HEADER
   ${HW2_SOURCE_DIR}/../include/opengl_context.h
   ${HW2_SOURCE_DIR}/../include/program.h
   ${HW2_SOURCE_DIR}/../include/utils.h
+  ${HW2_SOURCE_DIR}/../include/isolated_viewer.h
 )
 add_executable(HW2 ${HW2_SOURCE} ${HW2_HEADER})
 target_include_directories(HW2 PRIVATE ${HW2_SOURCE_DIR}/../include)

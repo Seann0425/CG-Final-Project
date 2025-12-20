@@ -14,6 +14,7 @@
 #include "camera.h"
 #include "context.h"
 #include "gl_helper.h"
+#include "isolated_viewer.h"
 #include "model.h"
 #include "opengl_context.h"
 #include "program.h"
@@ -22,12 +23,12 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-// https://sketchfab.com/3d-models/eva-d434dfc3cb9244fbba83407ccabdd523#download ���J�o�Ӿ����H
 void initOpenGL();
 void resizeCallback(GLFWwindow* window, int width, int height);
 void keyCallback(GLFWwindow* window, int key, int, int action, int);
 
 Context ctx;
+IsolatedViewer g_isolatedViewer;
 
 Material mFlatwhite;
 Material mShinyred;
@@ -248,7 +249,6 @@ Model* createBezierVaseModel() {
       glm::vec2 t10(u0, v1);
       glm::vec2 t11(u1, v1);
 
-      // �T���� 1�Gp00, p10, p11
       vase->positions.push_back(p00.x);
       vase->positions.push_back(p00.y);
       vase->positions.push_back(p00.z);
@@ -272,7 +272,6 @@ Model* createBezierVaseModel() {
       vase->texcoords.push_back(t11.x);
       vase->texcoords.push_back(t11.y);
 
-      // �T���� 2�Gp00, p11, p01
       vase->positions.push_back(p00.x);
       vase->positions.push_back(p00.y);
       vase->positions.push_back(p00.z);
@@ -551,10 +550,9 @@ void setupObjects() {
 int main() {
   initOpenGL();
   GLFWwindow* window = OpenGLContext::getWindow();
-  /* TODO#0: Change window title to "HW2 - `your student id`"
-   *         Ex. HW2 - 311550000
-   */
-  glfwSetWindowTitle(window, "HW2 - 112550002");
+  glfwSetWindowTitle(window, "CG-Final-Project");
+
+  g_isolatedViewer.init(window);
 
   // Init Camera helper
   Camera camera(glm::vec3(0, 2, 5));
@@ -651,10 +649,6 @@ int main() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     // bonus end
 
-    // bouns start
-    // Normal Rendering (�쥻��object render)
-    // bouns end
-    // ���] Viewport �^�����j�p
     int scrWidth, scrHeight;
     glfwGetFramebufferSize(window, &scrWidth, &scrHeight);
     glViewport(0, 0, scrWidth, scrHeight);
@@ -677,7 +671,6 @@ int main() {
         glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(lightSpaceMatrix));
       }
 
-      // tie Shadow Map �� Texture Unit 1
       glActiveTexture(GL_TEXTURE1);
       glBindTexture(GL_TEXTURE_2D, depthMap);
 
@@ -689,11 +682,11 @@ int main() {
       program->doMainLoop();
     }
 
-    // original
-    /*for (size_t i = 0; i < ctx.programs.size(); i++) {
-      ctx.programs[i]->doMainLoop();
-    }*/
-    // end
+    if (g_isolatedViewer.isActive()) {
+      if (!ctx.programs.empty()) {
+        g_isolatedViewer.render(*ctx.programs[1]);
+      }
+    }
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -744,6 +737,31 @@ int main() {
         if (y > ImGui::GetCursorPosY()) ImGui::SetCursorPosY(y);
         ImGui::TextColored(ImVec4(0.9f, 0.9f, 0.6f, 1.0f), "%s", hint);
       }
+      ImGui::End();
+
+      ImGui::Begin("Isolated Viewer Inspector");
+      ImGui::Text("Click an object to open in NEW WINDOW:");
+
+      for (size_t i = 0; i < ctx.objects.size(); ++i) {
+        std::string label = "Object " + std::to_string(i);
+        if (ImGui::Button(label.c_str())) {
+          Model* rawPtr = ctx.models[ctx.objects[i]->modelIndex];
+          std::shared_ptr<Model> sPtr(rawPtr, [](Model*) {});
+          g_isolatedViewer.setTarget(sPtr);
+        }
+      }
+
+      ImGui::Separator();
+      if (ImGui::Button("Close Viewer / Clear Target")) {
+        g_isolatedViewer.clearTarget();
+      }
+
+      if (g_isolatedViewer.isActive()) {
+        ImGui::TextColored(ImVec4(0, 1, 0, 1), "Status: Active");
+      } else {
+        ImGui::TextColored(ImVec4(1, 0, 0, 1), "Status: Inactive");
+      }
+
       ImGui::End();
     }
     ImGui::Render();
