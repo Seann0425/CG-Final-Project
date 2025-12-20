@@ -39,7 +39,8 @@ struct FurnitureItem{
 
 std::vector<FurnitureItem> furnitureList = {
   { "TV", "../assets/models/tv/tv.obj", "../assets/models/tv/tv.png", 1.0f, -1 },
-  { "Sofa", "../assets/models/sofa/Sofa.obj", "../assets/models/sofa/textures/SofaBaseColor.png", 0.001f, -1 }
+  { "Sofa", "../assets/models/sofa/Sofa.obj", "../assets/models/sofa/textures/SofaBaseColor.png", 0.001f, -1 },
+  { "Table", "../assets/models/table/Table.obj", "../assets/models/table/textures/TableBaseColor.png", 0.005f, -1 }
 };
 int whiteFloorModelIndex = -1;
 Context ctx;
@@ -886,7 +887,7 @@ int main() {
       ImGui::Text("Select Item to Add:");
 
       // --- 按鈕 1: Robot ---
-      if (ImGui::Button("Add Robot", ImVec2(100, 50))) {
+      if (ImGui::Button("Robot", ImVec2(100, 50))) {
         // 計算變換矩陣 (位置 + 縮放)
         glm::mat4 t = glm::translate(glm::mat4(1.0f), glm::vec3(spawnPos[0], spawnPos[1], spawnPos[2]));
         t = glm::scale(t, glm::vec3(spawnScale));
