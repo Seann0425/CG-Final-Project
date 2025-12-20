@@ -163,7 +163,7 @@ Model* createPlane() {
   m->textures.push_back(PlaneTexture);
 
   m->numVertex = 4;
-  m->drawMode = GL_QUADS;  // draw triangle
+  m->drawMode = GL_QUADS;  
   return m;
 }
 
@@ -631,38 +631,58 @@ int main() {
     ImGui::NewFrame();
     // Lights control panel
     {
-      ImGui::Begin("Lights Control");
+      ImGui::Begin("Control");
 
-      // --- Directional Light ---
-      ImGui::Text("Directional Light");
+      // Time 
+      ImGui::Text("Time");
       {
         ImGui::SameLine();
         bool enable = (ctx.directionLightEnable != 0);
         if (ImGui::Checkbox("Enable##dir", &enable)) ctx.directionLightEnable = enable ? 1 : 0;
-        ImGui::SliderFloat3("Dir X/Y/Z##dir", &ctx.directionLightDirection.x, -50.0f, 50.0f);
+        
+        static float time = 12.0f;
+        
+        if (ImGui::SliderFloat("Time of Day##dir", &time, 6.0f, 18.0f, "%.1f:00")) {
+          time = round(time * 6.0f) / 6.0f;  // 四捨五入到 10 分鐘
+          
+          float angle = (time - 12.0f) * 15.0f;
+          float radians = angle * 3.14159f / 180.0f;
+          
+          ctx.directionLightDirection.x = sin(radians);
+          ctx.directionLightDirection.y = -cos(radians); 
+          ctx.directionLightDirection.z = 0.0f;
+          
+          // (6:00-11:00): 黃色 -> 白色
+          // (11:00-13:00): 白色
+          // (13:00-18:00): 白色 -> 橘黃色
+          
+          if (time <= 11.0f) {
+            // 早晨
+            float t = (time - 6.0f) / 5.0f;
+            ctx.directionLightColor[0] = 0.85f;                   
+            ctx.directionLightColor[1] = 0.60f + 0.20f * t;      // G: 0.60 -> 0.80
+            ctx.directionLightColor[2] = 0.35f + 0.40f * t;      // B: 0.35 -> 0.75
+          }
+          else if (time >= 13.0f) {
+            // 傍晚
+            float t = (time - 13.0f) / 5.0f;
+            ctx.directionLightColor[0] = 0.85f;                   
+            ctx.directionLightColor[1] = 0.80f - 0.25f * t;      // G: 0.80 -> 0.55
+            ctx.directionLightColor[2] = 0.75f - 0.40f * t;      // B: 0.75 -> 0.35
+          }
+          else {
+            // 中午
+            ctx.directionLightColor[0] = 0.85f;
+            ctx.directionLightColor[1] = 0.80f;
+            ctx.directionLightColor[2] = 0.75f;
+          }
+        }
+        
+        int hour = (int)time;
+        int minute = (int)((time - hour) * 60);
+        ImGui::Text("Current: %02d:%02d", hour, minute);
+        
         ImGui::ColorEdit3("Color##dir", &ctx.directionLightColor[0]);
-      }
-      ImGui::Separator();
-
-      // --- Point Light ---
-      ImGui::Text("Point Light");
-      {
-        ImGui::SameLine();
-        bool enable = (ctx.pointLightEnable != 0);
-        if (ImGui::Checkbox("Enable##point", &enable)) ctx.pointLightEnable = enable ? 1 : 0;
-        ImGui::SliderFloat3("Pos X/Y/Z##point", &ctx.pointLightPosition.x, -10.0f, 10.0f);
-        ImGui::ColorEdit3("Color##point", &ctx.pointLightColor[0]);
-      }
-      ImGui::Separator();
-
-      // --- Spot Light ---
-      ImGui::Text("Spot Light");
-      {
-        ImGui::SameLine();
-        bool enable = (ctx.spotLightEnable != 0);
-        if (ImGui::Checkbox("Enable##spot", &enable)) ctx.spotLightEnable = enable ? 1 : 0;
-        ImGui::SliderFloat3("Pos X/Y/Z##spot", &ctx.spotLightPosition.x, -10.0f, 10.0f);
-        ImGui::ColorEdit3("Color##spot", &ctx.spotLightColor[0]);
       }
       ImGui::Separator();
 
