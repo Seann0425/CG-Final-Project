@@ -1,3 +1,3 @@
-* delete cache and reconfigure
-* build
-* run (in /bin/Debug/)
+Modified code:
+Delete imGui of spot light and point light,
+modified direction light to TimeChange
