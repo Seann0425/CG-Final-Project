@@ -582,14 +582,14 @@ void setupObjects() {
   glm::mat4 robotform = glm::translate(glm::mat4(1.0f), glm::vec3(robot_x, 0.0f, robot_z));
   ctx.objects.push_back(new Object(0, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, 0.0, 0.0))));
   (*ctx.objects.rbegin())->material = mFlatwhite;
-  ctx.objects.push_back(new Object(1, glm::translate(glm::mat4(1.0f), glm::vec3(2.0, 0, 3.0))));
-  (*ctx.objects.rbegin())->material = mFlatwhite;
-  ctx.objects.push_back(new Object(2, vaseform));
-  (*ctx.objects.rbegin())->material = mMirror;
-  ctx.objects.push_back(new Object(3, vaseform));
-  (*ctx.objects.rbegin())->material = mFlatwhite;
-  ctx.objects.push_back(new Object(4, vaseform));
-  (*ctx.objects.rbegin())->material = mFlatwhite;
+  // ctx.objects.push_back(new Object(1, glm::translate(glm::mat4(1.0f), glm::vec3(2.0, 0, 3.0))));
+  // (*ctx.objects.rbegin())->material = mFlatwhite;
+  // ctx.objects.push_back(new Object(2, vaseform));
+  // (*ctx.objects.rbegin())->material = mMirror;
+  // ctx.objects.push_back(new Object(3, vaseform));
+  // (*ctx.objects.rbegin())->material = mFlatwhite;
+  // ctx.objects.push_back(new Object(4, vaseform));
+  // (*ctx.objects.rbegin())->material = mFlatwhite;
   ctx.objects.push_back(new Object(5, robotform));
   (*ctx.objects.rbegin())->material = mFlatwhite;
   ctx.objects.push_back(new Object(whiteFloorModelIndex, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, -0.01, 0.0))));
@@ -665,7 +665,7 @@ int main() {
     glClearDepth(1.0f);
 
     // bouns start
-    Object* robot = ctx.objects[5];
+    Object* robot = ctx.objects[1];
     glm::mat4 newTransform = glm::translate(glm::mat4(1.0f), glm::vec3(robot_x, 0.0f, robot_z));
     // newTransform = glm::scale(newTransform, glm::vec3(0.5f));
     robot->transformMatrix = newTransform;
@@ -896,6 +896,38 @@ int main() {
         Object* newObj = new Object(5, t);
         newObj->material = mFlatwhite;
         ctx.objects.push_back(newObj);
+      }
+      ImGui::SameLine();
+      // --- 按鈕 2: Bottle ---
+      if (ImGui::Button("Bottle", ImVec2(100, 50))) {
+        // 計算變換矩陣 (位置 + 縮放)
+        glm::mat4 t = glm::translate(glm::mat4(1.0f), glm::vec3(spawnPos[0], spawnPos[1], spawnPos[2]));
+        t = glm::scale(t, glm::vec3(spawnScale));
+        
+        // Robot 對應 loadModels 中的 index 5
+        Object* newObj = new Object(1, t);
+        newObj->material = mFlatwhite;
+        ctx.objects.push_back(newObj);
+      }
+      ImGui::SameLine();
+      // --- 按鈕 3: Vase ---
+      if (ImGui::Button("Vase", ImVec2(100, 50))) {
+        // 計算變換矩陣 (位置 + 縮放)
+        glm::mat4 t = glm::translate(glm::mat4(1.0f), glm::vec3(spawnPos[0], spawnPos[1], spawnPos[2]));
+        t = glm::scale(t, glm::vec3(spawnScale));
+        
+        // outer
+        Object* outer = new Object(2, t);
+        outer->material = mMirror; 
+        ctx.objects.push_back(outer);
+        // inner
+        Object* inner = new Object(3, t);
+        inner->material = mFlatwhite;
+        ctx.objects.push_back(inner);
+        // bottom
+        Object* bottom = new Object(4, t);
+        bottom->material = mFlatwhite;
+        ctx.objects.push_back(bottom);
       }
 
       int buttonCount = 0;
