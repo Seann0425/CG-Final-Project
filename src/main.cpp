@@ -23,6 +23,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "floor_helper.h"
 // https://sketchfab.com/3d-models/eva-d434dfc3cb9244fbba83407ccabdd523#download ���J�o�Ӿ����H
 void initOpenGL();
 void resizeCallback(GLFWwindow* window, int width, int height);
@@ -40,7 +41,7 @@ std::vector<FurnitureItem> furnitureList = {
   { "TV", "../assets/models/tv/tv.obj", "../assets/models/tv/tv.png", 1.0f, -1 },
   { "Sofa", "../assets/models/sofa/Sofa.obj", "../assets/models/sofa/textures/SofaBaseColor.png", 0.001f, -1 }
 };
-
+int whiteFloorModelIndex = -1;
 Context ctx;
 IsolatedViewer g_isolatedViewer;
 
@@ -550,6 +551,10 @@ void loadModels() {
   ctx.models.push_back(createBezierVaseBottomModel());
   ctx.models.push_back(createRobot());
 
+  Model* floorModel = createWhiteFloor();
+  ctx.models.push_back(floorModel);
+  whiteFloorModelIndex = (int)ctx.models.size() - 1;
+
   for(auto& item : furnitureList){
     Model* m = createFurnitureModel(item.objPath, item.texPath, item.Scale);
     if (m != NULL) {
@@ -585,6 +590,8 @@ void setupObjects() {
   ctx.objects.push_back(new Object(4, vaseform));
   (*ctx.objects.rbegin())->material = mFlatwhite;
   ctx.objects.push_back(new Object(5, robotform));
+  (*ctx.objects.rbegin())->material = mFlatwhite;
+  ctx.objects.push_back(new Object(whiteFloorModelIndex, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, -0.01, 0.0))));
   (*ctx.objects.rbegin())->material = mFlatwhite;
 }
 
