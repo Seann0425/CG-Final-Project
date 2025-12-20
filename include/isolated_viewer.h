@@ -37,8 +37,24 @@ class IsolatedViewer {
   GLuint vboNormal;
   GLuint vboTexCoord;
 
+  bool isDragging;
+  float lastMouseX;
+  float lastMouseY;
+
+  float cameraYaw;
+  float cameraPitch;
+  float cameraRadius;
+
   void uploadDataToGPU();
   void freeGPUResources();
+
+  static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
+  static void cursorPosCallback(GLFWwindow* window, double xpos, double ypos);
+  static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+
+  void onMouseButton(int button, int action);
+  void onCursorPos(double xpos, double ypos);
+  void onScroll(double yoffset);
 };
 
 #endif
