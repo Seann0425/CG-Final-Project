@@ -1,3 +1,4 @@
-Modified code:
-Delete imGui of spot light and point light,
-modified direction light to TimeChange
+### Modified code:
+```
+(1) Delete imGui of spot light and point light
+(2) Modified direction light to TimeChange
