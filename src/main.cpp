@@ -28,6 +28,18 @@ void initOpenGL();
 void resizeCallback(GLFWwindow* window, int width, int height);
 void keyCallback(GLFWwindow* window, int key, int, int action, int);
 
+struct FurnitureItem{
+  std::string name;
+  std::string objPath;
+  std::string texPath;
+  float Scale;
+  int modelIndex;
+};
+
+std::vector<FurnitureItem> furnitureList = {
+  { "TV", "../assets/models/tv/tv.obj", "../assets/models/tv/tv.png", 1.0f, -1 }
+};
+
 Context ctx;
 IsolatedViewer g_isolatedViewer;
 
@@ -69,6 +81,20 @@ class DepthProgram : public ExampleProgram {
     glUseProgram(0);
   }
 };
+
+Model* createFurnitureModel(const std::string& objPath, const std::string& texPath, float scale) {
+    Model* m = Model::fromObjectFile(objPath.c_str());
+    if (m == NULL) {
+        std::cout << "ERROR: Failed to load " << objPath << std::endl;
+        return NULL;
+    }
+
+    GLuint texture = createTexture(texPath.c_str());
+    m->textures.push_back(texture);
+    m->modelMatrix = glm::scale(m->modelMatrix, glm::vec3(scale));
+    m->drawMode = GL_TRIANGLES;
+    return m;
+}
 
 void loadMaterial() {
   mFlatwhite.ambient = glm::vec3(0.5f, 0.5f, 0.5f);
@@ -522,6 +548,17 @@ void loadModels() {
   ctx.models.push_back(createBezierVaseInnerModel());
   ctx.models.push_back(createBezierVaseBottomModel());
   ctx.models.push_back(createRobot());
+
+  for(auto& item : furnitureList){
+    Model* m = createFurnitureModel(item.objPath, item.texPath, item.Scale);
+    if (m != NULL) {
+      ctx.models.push_back(m);
+      item.modelIndex = (int)ctx.models.size() - 1; 
+      std::cout << "Loaded " << item.name << " at index " << item.modelIndex << std::endl;
+    } else {
+      std::cout << "Skipped " << item.name << " due to error." << std::endl;
+    }
+  }
 }
 
 float robot_x = 0.0f;
@@ -833,7 +870,7 @@ int main() {
       // 調整生成位置與大小
       ImGui::Text("Spawn Settings");
       ImGui::DragFloat("Pos X", &spawnPos[0], 0.1f, 0.0f, 8.1f);
-      spawnPos[1] = 0.0f; 
+      ImGui::DragFloat("Pos Y", &spawnPos[1], 0.0f, 0.0f, 10.0f);
       ImGui::DragFloat("Pos Z", &spawnPos[2], 0.1f, 0.0f, 5.1f);
       ImGui::DragFloat("Scale", &spawnScale, 0.05f, 0.1f, 5.0f);
 
@@ -852,7 +889,22 @@ int main() {
         ctx.objects.push_back(newObj);
       }
 
-      ImGui::SameLine(); // 讓下一個按鈕排在右邊
+      int buttonCount = 0;
+      for (const auto& item : furnitureList) {
+          if (item.modelIndex == -1) continue; // 如果載入失敗就別顯示按鈕
+
+          if (ImGui::Button(item.name.c_str(), ImVec2(100, 50))) {
+              glm::mat4 t = glm::translate(glm::mat4(1.0f), glm::vec3(spawnPos[0], spawnPos[1], spawnPos[2]));
+              t = glm::scale(t, glm::vec3(spawnScale));
+
+              Object* newObj = new Object(item.modelIndex, t);
+              newObj->material = mFlatwhite; 
+              ctx.objects.push_back(newObj);
+          }
+
+          buttonCount++;
+          if (buttonCount % 2 != 0) ImGui::SameLine();
+      }
       ImGui::Separator();
       ImGui::End(); 
     }
