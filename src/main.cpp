@@ -553,18 +553,9 @@ void setupObjects() {
 int main() {
   initOpenGL();
   GLFWwindow* window = OpenGLContext::getWindow();
-<<<<<<< HEAD
-  glfwSetWindowTitle(window, "CG-Final-Project");
+  glfwSetWindowTitle(window, "CGFinalProject");
 
   g_isolatedViewer.init(window);
-  glfwSetWindowTitle(window, "CGFinalProject");
-=======
-  /* TODO#0: Change window title to "HW2 - `your student id`"
-   *         Ex. HW2 - 311550000
-   */
-  glfwSetWindowTitle(window, "HW2 - 112550002");
->>>>>>> 91df080 (Based main code, add a new slider for time control)
-
   // Init Camera helper
   Camera camera(glm::vec3(0, 2, 5));
   camera.initialize(OpenGLContext::getAspectRatio());
