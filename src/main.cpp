@@ -827,12 +827,12 @@ int main() {
     glClear(GL_COLOR_BUFFER_BIT);
     glClearDepth(1.0f);
 
-    // bouns start
-    Object* robot = ctx.objects[1];
-    glm::mat4 newTransform = glm::translate(glm::mat4(1.0f), glm::vec3(robot_x, 0.0f, robot_z));
-    // newTransform = glm::scale(newTransform, glm::vec3(0.5f));
-    robot->transformMatrix = newTransform;
-    // bouns end
+    // // bouns start
+    // Object* robot = ctx.objects[1];
+    // glm::mat4 newTransform = glm::translate(glm::mat4(1.0f), glm::vec3(robot_x, 0.0f, robot_z));
+    // // newTransform = glm::scale(newTransform, glm::vec3(0.5f));
+    // robot->transformMatrix = newTransform;
+    // // bouns end
 
     // bonus start
     // Shadow Map Generation
