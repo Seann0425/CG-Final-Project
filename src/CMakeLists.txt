@@ -23,6 +23,9 @@ set(HW2_HEADER
   ${HW2_SOURCE_DIR}/../include/utils.h
   ${HW2_SOURCE_DIR}/../include/isolated_viewer.h
   ${HW2_SOURCE_DIR}/../include/aabb.h
+  ${HW2_SOURCE_DIR}/../include/floor_helper.h
+  ${HW2_SOURCE_DIR}/../include/Setting.h
+  ${HW2_SOURCE_DIR}/../include/ModelDisplay.h
 )
 add_executable(HW2 ${HW2_SOURCE} ${HW2_HEADER})
 target_include_directories(HW2 PRIVATE ${HW2_SOURCE_DIR}/../include)
