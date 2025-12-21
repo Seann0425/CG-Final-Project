@@ -20,7 +20,11 @@ set(HW2_HEADER
   ${HW2_SOURCE_DIR}/../include/opengl_context.h
   ${HW2_SOURCE_DIR}/../include/program.h
   ${HW2_SOURCE_DIR}/../include/utils.h
+<<<<<<< HEAD
   ${HW2_SOURCE_DIR}/../include/isolated_viewer.h
+=======
+  ${HW2_SOURCE_DIR}/../include/floor_helper.h
+>>>>>>> 37997d8 (Add a huge flatten plane)
 )
 add_executable(HW2 ${HW2_SOURCE} ${HW2_HEADER})
 target_include_directories(HW2 PRIVATE ${HW2_SOURCE_DIR}/../include)
