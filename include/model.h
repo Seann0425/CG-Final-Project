@@ -1,9 +1,11 @@
 #pragma once
 
-#include <glm/glm.hpp>
 #include <glad/gl.h>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/glm.hpp>
+#include <limits>
 #include <vector>
+#include "aabb.h"
 
 struct Material {
   glm::vec3 ambient = glm::vec3(0.2f, 0.2f, 0.2f);
@@ -11,7 +13,7 @@ struct Material {
   glm::vec3 specular = glm::vec3(0.3f, 0.3f, 0.3f);
   float shininess = 10;
   float reflectivity = 0.0f;
-}; 
+};
 
 class Model {
  public:
@@ -20,23 +22,27 @@ class Model {
   glm::mat4 modelMatrix = glm::identity<glm::mat4>();
 
  public:
+  glm::vec3 minBound;
+  glm::vec3 maxBound;
+
   // VBO data for the position of the vertex
   std::vector<float> positions;
   // VBO data for the normal of the vertex
-  std::vector<float> normals; 
-   // Or uv coordinates, VBO data for the 2D texture mapping of the vertex
+  std::vector<float> normals;
+  // Or uv coordinates, VBO data for the 2D texture mapping of the vertex
   std::vector<float> texcoords;
 
-  // Total number of vertex 
-  int numVertex = 0; 
+  AABB aabb;
+
+  // Total number of vertex
+  int numVertex = 0;
   // Mode parameter for glDrawArrays
-  GLenum drawMode = GL_TRIANGLES; 
+  GLenum drawMode = GL_TRIANGLES;
 
   // Ids for texture of this model
-  std::vector<GLuint> textures; 
+  std::vector<GLuint> textures;
 
   static Model* fromObjectFile(const char* obj_file);
-
 };
 
 // Represent an object in the scene

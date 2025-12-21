@@ -45,6 +45,8 @@ class IsolatedViewer {
   float cameraPitch;
   float cameraRadius;
 
+  glm::vec3 focusPoint;
+
   void uploadDataToGPU();
   void freeGPUResources();
 
