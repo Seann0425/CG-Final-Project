@@ -43,6 +43,9 @@ std::vector<FurnitureItem> furnitureList = {
   { "Table", "../assets/models/table/Table.obj", "../assets/models/table/textures/TableBaseColor.png", 0.005f, -1 }
 };
 int whiteFloorModelIndex = -1;
+int VerticalWallModelIndex = -1;
+int VerticalWallModelIndex2 = -1;
+int VerticalWallModelIndex3 = -1;
 Context ctx;
 IsolatedViewer g_isolatedViewer;
 
@@ -555,6 +558,17 @@ void loadModels() {
   Model* floorModel = createWhiteFloor();
   ctx.models.push_back(floorModel);
   whiteFloorModelIndex = (int)ctx.models.size() - 1;
+  Model* VerticalWall = createVerticalFloor();
+  ctx.models.push_back(VerticalWall);
+  VerticalWallModelIndex = (int)ctx.models.size() - 1;
+
+  Model* LeftWall = createVerticalSideFloor(true);
+  ctx.models.push_back(LeftWall);
+  VerticalWallModelIndex2 = (int)ctx.models.size() - 1;
+
+  Model* RightWall = createVerticalSideFloor(false);
+  ctx.models.push_back(RightWall);
+  VerticalWallModelIndex3 = (int)ctx.models.size() - 1;
 
   for(auto& item : furnitureList){
     Model* m = createFurnitureModel(item.objPath, item.texPath, item.Scale);
@@ -593,6 +607,12 @@ void setupObjects() {
   ctx.objects.push_back(new Object(5, robotform));
   (*ctx.objects.rbegin())->material = mFlatwhite;
   ctx.objects.push_back(new Object(whiteFloorModelIndex, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, -0.01, 0.0))));
+  (*ctx.objects.rbegin())->material = mFlatwhite;
+  ctx.objects.push_back(new Object(VerticalWallModelIndex, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, 0.0, 0.0))));
+  (*ctx.objects.rbegin())->material = mFlatwhite;
+  ctx.objects.push_back(new Object(VerticalWallModelIndex2, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, 0.0, 0.0))));
+  (*ctx.objects.rbegin())->material = mFlatwhite;
+  ctx.objects.push_back(new Object(VerticalWallModelIndex3, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, 0.0, 0.0))));
   (*ctx.objects.rbegin())->material = mFlatwhite;
 }
 
