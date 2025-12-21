@@ -16,7 +16,7 @@ class Camera {
   const float* getViewMatrix() const { return glm::value_ptr(viewMatrix); }
   const float* getPosition() const { return glm::value_ptr(position); }
 
-private:
+// private:
   glm::vec3 position;
   glm::vec3 up;
   glm::vec3 front;

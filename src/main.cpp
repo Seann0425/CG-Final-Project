@@ -50,6 +50,10 @@ int VerticalWallModelIndex = -1;
 int VerticalWallModelIndex2 = -1;
 int VerticalWallModelIndex3 = -1;
 int selectedObjIndex = -1;
+bool isRobotView = false;
+glm::vec3 savedPos;
+glm::quat savedRot;
+
 Context ctx;
 IsolatedViewer g_isolatedViewer;
 
@@ -823,7 +827,6 @@ int main() {
     glfwPollEvents();
     // Update camera position and view
     camera.move(window);
-    EnableWall(ctx, Enabled, VerticalWallModelIndex, VerticalWallModelIndex2, VerticalWallModelIndex3, SceneTime);
     // GL_XXX_BIT can simply "OR" together to use.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     /// TO DO Enable DepthTest
@@ -834,10 +837,10 @@ int main() {
     glClearDepth(1.0f);
 
     // // bouns start
-    // Object* robot = ctx.objects[1];
-    // glm::mat4 newTransform = glm::translate(glm::mat4(1.0f), glm::vec3(robot_x, 0.0f, robot_z));
-    // // newTransform = glm::scale(newTransform, glm::vec3(0.5f));
-    // robot->transformMatrix = newTransform;
+    Object* robot = ctx.objects[1];
+    glm::mat4 newTransform = glm::translate(glm::mat4(1.0f), glm::vec3(robot_x, 0.0f, robot_z));
+    // newTransform = glm::scale(newTransform, glm::vec3(0.5f));
+    robot->transformMatrix = newTransform;
     // // bouns end
 
     // bonus start
@@ -1095,13 +1098,15 @@ int main() {
       ImGui::Separator();
 
       {
-        const char* hint = "Use F1 to toggle cursor";
-        ImGui::Separator();
-        ImVec2 winSize = ImGui::GetWindowSize();
-        ImVec2 txtSize = ImGui::CalcTextSize(hint);
-        float y = winSize.y - txtSize.y - ImGui::GetStyle().FramePadding.y - ImGui::GetStyle().ItemSpacing.y;
-        if (y > ImGui::GetCursorPosY()) ImGui::SetCursorPosY(y);
-        ImGui::TextColored(ImVec4(0.9f, 0.9f, 0.6f, 1.0f), "%s", hint);
+        const char* hints[] = {
+            "F1 - Toggle cursor",
+            "C  - Change viewsight", 
+            "E  - Display/Hide wall"
+        };
+        ImGui::Separator();  
+        for (const char* hint : hints) {
+            ImGui::TextColored(ImVec4(0.9f, 0.9f, 0.6f, 1.0f), "%s", hint);
+        }
       }
       ImGui::End();
 
@@ -1262,6 +1267,25 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int) {
         } else {
           glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
           if (cam) cam->setLastMousePos(window);
+        }
+        break;
+      }
+      case GLFW_KEY_C:{
+        Camera* cam = static_cast<Camera*>(glfwGetWindowUserPointer(window));
+        if (!isRobotView) {
+            savedPos = cam->position;
+            savedRot = cam->rotation;
+            isRobotView = true;
+        }
+
+        else {
+          isRobotView = false;
+            
+          cam->position = savedPos;
+          cam->rotation = savedRot;
+            
+          cam->updateViewMatrix();
+          std::cout << "Back to Free View" << std::endl;
         }
         break;
       }
