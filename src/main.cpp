@@ -1007,40 +1007,41 @@ int main() {
     ImGui::NewFrame();
     // Lights control panel
     {
+      ImGui::SetNextWindowSize(ImVec2(300, 400), ImGuiCond_FirstUseEver);
       ImGui::Begin("Lights Control");
 
       // --- Directional Light ---
-      ImGui::Text("Directional Light");
-      {
-        ImGui::SameLine();
-        bool enable = (ctx.directionLightEnable != 0);
-        if (ImGui::Checkbox("Enable##dir", &enable)) ctx.directionLightEnable = enable ? 1 : 0;
-        ImGui::SliderFloat3("Dir X/Y/Z##dir", &ctx.directionLightDirection.x, -50.0f, 50.0f);
-        ImGui::ColorEdit3("Color##dir", &ctx.directionLightColor[0]);
-      }
-      ImGui::Separator();
+      // ImGui::Text("Directional Light");
+      // {
+      //   ImGui::SameLine();
+      //   bool enable = (ctx.directionLightEnable != 0);
+      //   if (ImGui::Checkbox("Enable##dir", &enable)) ctx.directionLightEnable = enable ? 1 : 0;
+      //   ImGui::SliderFloat3("Dir X/Y/Z##dir", &ctx.directionLightDirection.x, -50.0f, 50.0f);
+      //   ImGui::ColorEdit3("Color##dir", &ctx.directionLightColor[0]);
+      // }
+      // ImGui::Separator();
 
-      // --- Point Light ---
-      ImGui::Text("Point Light");
-      {
-        ImGui::SameLine();
-        bool enable = (ctx.pointLightEnable != 0);
-        if (ImGui::Checkbox("Enable##point", &enable)) ctx.pointLightEnable = enable ? 1 : 0;
-        ImGui::SliderFloat3("Pos X/Y/Z##point", &ctx.pointLightPosition.x, -10.0f, 10.0f);
-        ImGui::ColorEdit3("Color##point", &ctx.pointLightColor[0]);
-      }
-      ImGui::Separator();
+      // // --- Point Light ---
+      // ImGui::Text("Point Light");
+      // {
+      //   ImGui::SameLine();
+      //   bool enable = (ctx.pointLightEnable != 0);
+      //   if (ImGui::Checkbox("Enable##point", &enable)) ctx.pointLightEnable = enable ? 1 : 0;
+      //   ImGui::SliderFloat3("Pos X/Y/Z##point", &ctx.pointLightPosition.x, -10.0f, 10.0f);
+      //   ImGui::ColorEdit3("Color##point", &ctx.pointLightColor[0]);
+      // }
+      // ImGui::Separator();
 
-      // --- Spot Light ---
-      ImGui::Text("Spot Light");
-      {
-        ImGui::SameLine();
-        bool enable = (ctx.spotLightEnable != 0);
-        if (ImGui::Checkbox("Enable##spot", &enable)) ctx.spotLightEnable = enable ? 1 : 0;
-        ImGui::SliderFloat3("Pos X/Y/Z##spot", &ctx.spotLightPosition.x, -10.0f, 10.0f);
-        ImGui::ColorEdit3("Color##spot", &ctx.spotLightColor[0]);
-      }
-      ImGui::Separator();
+      // // --- Spot Light ---
+      // ImGui::Text("Spot Light");
+      // {
+      //   ImGui::SameLine();
+      //   bool enable = (ctx.spotLightEnable != 0);
+      //   if (ImGui::Checkbox("Enable##spot", &enable)) ctx.spotLightEnable = enable ? 1 : 0;
+      //   ImGui::SliderFloat3("Pos X/Y/Z##spot", &ctx.spotLightPosition.x, -10.0f, 10.0f);
+      //   ImGui::ColorEdit3("Color##spot", &ctx.spotLightColor[0]);
+      // }
+      // ImGui::Separator();
 
       // Time
       ImGui::Text("Time");
@@ -1268,7 +1269,7 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int) {
       case GLFW_KEY_E:{
         std::cout << "Key E Pressed\n";
         Enabled = !Enabled;
-        std::cout << "Enabled = " << Enabled << "\n"; 
+        // std::cout << "Enabled = " << Enabled << "\n"; 
         break;
       }
       default:
