@@ -97,11 +97,14 @@ Model* createFurnitureModel(const std::string& objPath, const std::string& texPa
     return NULL;
   }
 
-  GLuint texture = createTexture(texPath.c_str());
-  m->textures.push_back(texture);
-  m->modelMatrix = glm::scale(m->modelMatrix, glm::vec3(scale));
-  m->drawMode = GL_TRIANGLES;
-  return m;
+    if (objPath.find("Table.obj") != std::string::npos) {
+      m->modelMatrix = glm::translate(m->modelMatrix, glm::vec3(-5.0f, 0.0f, -2.5f));
+    }
+    GLuint texture = createTexture(texPath.c_str());
+    m->textures.push_back(texture);
+    m->modelMatrix = glm::scale(m->modelMatrix, glm::vec3(scale));
+    m->drawMode = GL_TRIANGLES;
+    return m;
 }
 
 void loadMaterial() {
@@ -584,8 +587,8 @@ void loadModels() {
   }
 }
 
-float robot_x = 0.0f;
-float robot_z = 0.0f;
+float robot_x = 3.0f;
+float robot_z = 2.0f;
 void setupObjects() {
   /* TODO#2-2: Set up the object by the model vector
    * Note:
@@ -1274,19 +1277,19 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int) {
       case GLFW_KEY_DOWN:
         std::cout << "Down Key Pressed" << std::endl;
         robot_z = robot_z - 0.2f;
-        if (robot_z <= 0.0f) robot_z = 0.0f;
+        if (robot_z <= 0.5f) robot_z = 0.5f;
         break;
 
       case GLFW_KEY_LEFT:
         std::cout << "Left Key Pressed" << std::endl;
         robot_x = robot_x - 0.2f;
-        if (robot_x <= 0.0f) robot_x = 0.0f;
+        if (robot_x <= 0.5f) robot_x = 0.5f;
         break;
 
       case GLFW_KEY_RIGHT:
         std::cout << "Right Key Pressed" << std::endl;
         robot_x = robot_x + 0.2f;
-        if (robot_x >= 8.192f) robot_x = 8.192;
+        if (robot_x >= 6.9f) robot_x = 6.9;
         break;
     }
   }
