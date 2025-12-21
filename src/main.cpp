@@ -10,7 +10,9 @@
 #include <glm/glm.hpp>
 
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
+#include "aabb.h"
 #include "camera.h"
 #include "context.h"
 #include "gl_helper.h"
@@ -20,16 +22,16 @@
 #include "program.h"
 #include "utils.h"
 
+#include "floor_helper.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include "floor_helper.h"
 // https://sketchfab.com/3d-models/eva-d434dfc3cb9244fbba83407ccabdd523#download ���J�o�Ӿ����H
 void initOpenGL();
 void resizeCallback(GLFWwindow* window, int width, int height);
 void keyCallback(GLFWwindow* window, int key, int, int action, int);
 
-struct FurnitureItem{
+struct FurnitureItem {
   std::string name;
   std::string objPath;
   std::string texPath;
@@ -38,10 +40,9 @@ struct FurnitureItem{
 };
 
 std::vector<FurnitureItem> furnitureList = {
-  { "TV", "../assets/models/tv/tv.obj", "../assets/models/tv/tv.png", 1.0f, -1 },
-  { "Sofa", "../assets/models/sofa/Sofa.obj", "../assets/models/sofa/textures/SofaBaseColor.png", 0.001f, -1 },
-  { "Table", "../assets/models/table/Table.obj", "../assets/models/table/textures/TableBaseColor.png", 0.005f, -1 }
-};
+    {"TV", "../assets/models/tv/tv.obj", "../assets/models/tv/tv.png", 1.0f, -1},
+    {"Sofa", "../assets/models/sofa/Sofa.obj", "../assets/models/sofa/textures/SofaBaseColor.png", 0.001f, -1},
+    {"Table", "../assets/models/table/Table.obj", "../assets/models/table/textures/TableBaseColor.png", 0.005f, -1}};
 int whiteFloorModelIndex = -1;
 int VerticalWallModelIndex = -1;
 int VerticalWallModelIndex2 = -1;
@@ -89,17 +90,17 @@ class DepthProgram : public ExampleProgram {
 };
 
 Model* createFurnitureModel(const std::string& objPath, const std::string& texPath, float scale) {
-    Model* m = Model::fromObjectFile(objPath.c_str());
-    if (m == NULL) {
-        std::cout << "ERROR: Failed to load " << objPath << std::endl;
-        return NULL;
-    }
+  Model* m = Model::fromObjectFile(objPath.c_str());
+  if (m == NULL) {
+    std::cout << "ERROR: Failed to load " << objPath << std::endl;
+    return NULL;
+  }
 
-    GLuint texture = createTexture(texPath.c_str());
-    m->textures.push_back(texture);
-    m->modelMatrix = glm::scale(m->modelMatrix, glm::vec3(scale));
-    m->drawMode = GL_TRIANGLES;
-    return m;
+  GLuint texture = createTexture(texPath.c_str());
+  m->textures.push_back(texture);
+  m->modelMatrix = glm::scale(m->modelMatrix, glm::vec3(scale));
+  m->drawMode = GL_TRIANGLES;
+  return m;
 }
 
 void loadMaterial() {
@@ -570,11 +571,11 @@ void loadModels() {
   ctx.models.push_back(RightWall);
   VerticalWallModelIndex3 = (int)ctx.models.size() - 1;
 
-  for(auto& item : furnitureList){
+  for (auto& item : furnitureList) {
     Model* m = createFurnitureModel(item.objPath, item.texPath, item.Scale);
     if (m != NULL) {
       ctx.models.push_back(m);
-      item.modelIndex = (int)ctx.models.size() - 1; 
+      item.modelIndex = (int)ctx.models.size() - 1;
       std::cout << "Loaded " << item.name << " at index " << item.modelIndex << std::endl;
     } else {
       std::cout << "Skipped " << item.name << " due to error." << std::endl;
@@ -606,14 +607,153 @@ void setupObjects() {
   // (*ctx.objects.rbegin())->material = mFlatwhite;
   ctx.objects.push_back(new Object(5, robotform));
   (*ctx.objects.rbegin())->material = mFlatwhite;
-  ctx.objects.push_back(new Object(whiteFloorModelIndex, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, -0.01, 0.0))));
+  ctx.objects.push_back(
+      new Object(whiteFloorModelIndex, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, -0.01, 0.0))));
   (*ctx.objects.rbegin())->material = mFlatwhite;
-  ctx.objects.push_back(new Object(VerticalWallModelIndex, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, 0.0, 0.0))));
+  ctx.objects.push_back(
+      new Object(VerticalWallModelIndex, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, 0.0, 0.0))));
   (*ctx.objects.rbegin())->material = mFlatwhite;
-  ctx.objects.push_back(new Object(VerticalWallModelIndex2, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, 0.0, 0.0))));
+  ctx.objects.push_back(
+      new Object(VerticalWallModelIndex2, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, 0.0, 0.0))));
   (*ctx.objects.rbegin())->material = mFlatwhite;
-  ctx.objects.push_back(new Object(VerticalWallModelIndex3, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, 0.0, 0.0))));
+  ctx.objects.push_back(
+      new Object(VerticalWallModelIndex3, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, 0.0, 0.0))));
   (*ctx.objects.rbegin())->material = mFlatwhite;
+}
+
+unsigned int cubeVAO = 0;
+unsigned int cubeVBO = 0;
+// --- 新增這段：用來編譯簡單的 Debug Shader ---
+unsigned int createDebugShader() {
+  const char* vShaderCode = R"(
+        #version 330 core
+        layout (location = 0) in vec3 aPos;
+        uniform mat4 model;
+        uniform mat4 view;
+        uniform mat4 projection;
+        void main() {
+            gl_Position = projection * view * model * vec4(aPos, 1.0);
+        }
+    )";
+
+  const char* fShaderCode = R"(
+        #version 330 core
+        out vec4 FragColor;
+        uniform vec3 color;
+        void main() {
+            FragColor = vec4(color, 1.0);
+        }
+    )";
+
+  unsigned int vertex, fragment;
+  int success;
+  char infoLog[512];
+
+  vertex = glCreateShader(GL_VERTEX_SHADER);
+  glShaderSource(vertex, 1, &vShaderCode, NULL);
+  glCompileShader(vertex);
+  glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
+  if (!success) {
+    glGetShaderInfoLog(vertex, 512, NULL, infoLog);
+    std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+  }
+
+  fragment = glCreateShader(GL_FRAGMENT_SHADER);
+  glShaderSource(fragment, 1, &fShaderCode, NULL);
+  glCompileShader(fragment);
+  glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
+  if (!success) {
+    glGetShaderInfoLog(fragment, 512, NULL, infoLog);
+    std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+  }
+
+  unsigned int id = glCreateProgram();
+  glAttachShader(id, vertex);
+  glAttachShader(id, fragment);
+  glLinkProgram(id);
+  glGetProgramiv(id, GL_LINK_STATUS, &success);
+  if (!success) {
+    glGetProgramInfoLog(id, 512, NULL, infoLog);
+    std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+  }
+
+  glDeleteShader(vertex);
+  glDeleteShader(fragment);
+  return id;
+}
+// ---------------------------------------------
+void renderAABB(const AABB& box, unsigned int shaderID, const glm::mat4& model, const glm::mat4& view,
+                const glm::mat4& projection) {
+  // 1. 初始化 VAO/VBO (只執行一次)
+  if (cubeVAO == 0) {
+    float vertices[] = {// ... (頂點數據保持不變，同上個回應) ...
+                        -0.5f, -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, 0.5f,  0.5f,  -0.5f,
+                        0.5f,  0.5f,  -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, -0.5f, -0.5f,
+
+                        -0.5f, -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,  0.5f,  0.5f,  0.5f,
+                        0.5f,  0.5f,  0.5f,  -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,  0.5f,  -0.5f, -0.5f, 0.5f,
+
+                        -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, -0.5f, 0.5f,  -0.5f, 0.5f,  0.5f,  -0.5f, -0.5f,
+                        0.5f,  0.5f,  0.5f,  0.5f,  0.5f,  -0.5f, -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,  -0.5f};
+    glGenVertexArrays(1, &cubeVAO);
+    glGenBuffers(1, &cubeVBO);
+    glBindVertexArray(cubeVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  }
+
+  // 2. 計算模型矩陣
+  glm::vec3 center = box.getCenter();
+  glm::vec3 size = box.getSize();
+
+  // 防止除以零或無效大小 (Optional)
+  if (size.x == 0) size = glm::vec3(0.1f);
+
+  glm::mat4 boxModel = glm::mat4(1.0f);
+  boxModel = glm::translate(boxModel, center);
+  boxModel = glm::scale(boxModel, size);
+  glm::mat4 finalModel = model * boxModel;
+
+  // 3. 設定 Shader (使用原生 OpenGL API)
+  glUseProgram(shaderID);
+
+  // 設定 Uniforms
+  // 注意：這裡假設你的 Shader 變數名稱是 "projection", "view", "model", "color"
+  // 如果不是，請自行修改字串
+  glUniformMatrix4fv(glGetUniformLocation(shaderID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+  glUniformMatrix4fv(glGetUniformLocation(shaderID, "view"), 1, GL_FALSE, glm::value_ptr(view));
+  glUniformMatrix4fv(glGetUniformLocation(shaderID, "model"), 1, GL_FALSE, glm::value_ptr(finalModel));
+  glUniform3f(glGetUniformLocation(shaderID, "color"), 1.0f, 0.0f, 0.0f);  // 紅色
+
+  // 4. 繪製
+  glBindVertexArray(cubeVAO);
+  glDrawArrays(GL_LINES, 0, 24);
+  glBindVertexArray(0);
+}
+
+// 將螢幕座標轉換為世界空間的射線方向
+glm::vec3 getRayFromMouse(double mouseX, double mouseY, int windowWidth, int windowHeight, const glm::mat4& view,
+                          const glm::mat4& projection) {
+  // 1. 歸一化設備座標 (NDC): x, y 範圍 [-1, 1]
+  float x = (2.0f * mouseX) / windowWidth - 1.0f;
+  float y = 1.0f - (2.0f * mouseY) / windowHeight;  // OpenGL Y軸向上，視窗座標Y軸向下，所以要反轉
+  float z = 1.0f;                                   // 射向遠平面
+
+  // 2. 轉回 Clip Space
+  glm::vec3 ray_nds = glm::vec3(x, y, z);
+  glm::vec4 ray_clip = glm::vec4(ray_nds.x, ray_nds.y, -1.0, 1.0);
+
+  // 3. 轉回 Eye Space (View Space)
+  glm::vec4 ray_eye = glm::inverse(projection) * ray_clip;
+  ray_eye = glm::vec4(ray_eye.x, ray_eye.y, -1.0, 0.0);  // w=0 代表向量
+
+  // 4. 轉回 World Space
+  glm::vec3 ray_wor = glm::vec3(glm::inverse(view) * ray_eye);
+  ray_wor = glm::normalize(ray_wor);
+
+  return ray_wor;
 }
 
 int main() {
@@ -634,6 +774,8 @@ int main() {
   loadModels();
   loadPrograms();
   setupObjects();
+
+  unsigned int debugShaderID = createDebugShader();
 
   // bouns start
   const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
@@ -756,6 +898,79 @@ int main() {
       }
     }
 
+    // ---------------------------------------------------------
+    // Ray Casting & AABB Selection Logic
+    // ---------------------------------------------------------
+    if (ctx.camera != nullptr) {
+      // 1. 檢查游標是否顯示 (F1 切換後的狀態)
+      int cursorMode = glfwGetInputMode(window, GLFW_CURSOR);
+
+      // 只有在游標顯示模式下才進行檢測與繪製
+      if (cursorMode == GLFW_CURSOR_NORMAL) {
+        // 準備矩陣
+        glm::mat4 view = glm::make_mat4(ctx.camera->getViewMatrix());
+        glm::mat4 proj = glm::make_mat4(ctx.camera->getProjectionMatrix());
+
+        // 2. 計算世界空間射線 (World Ray)
+        double mouseX, mouseY;
+        glfwGetCursorPos(window, &mouseX, &mouseY);
+        int screenW, screenH;
+        glfwGetFramebufferSize(window, &screenW, &screenH);
+
+        glm::vec3 rayOrigin = glm::make_vec3(ctx.camera->getPosition());
+        glm::vec3 rayDir = getRayFromMouse(mouseX, mouseY, screenW, screenH, view, proj);
+
+        // 3. 遍歷所有物件，尋找最近的交點
+        float closestDist = std::numeric_limits<float>::max();
+        int hoveredObjIndex = -1;
+
+        for (int i = 0; i < ctx.objects.size(); ++i) {
+          Object* obj = ctx.objects[i];
+          if (obj->modelIndex < 0 || obj->modelIndex >= ctx.models.size()) continue;
+
+          Model* m = ctx.models[obj->modelIndex];
+
+          // --- 關鍵步驟：將射線轉入物件的 Local Space ---
+          // 我們不把 AABB 轉到世界座標(會變形)，而是把射線逆轉回模型座標
+          glm::mat4 modelMatrix = obj->transformMatrix * m->modelMatrix;
+          glm::mat4 invModelMatrix = glm::inverse(modelMatrix);
+
+          // 轉換射線起點 (視為點，w=1)
+          glm::vec4 localOrigin4 = invModelMatrix * glm::vec4(rayOrigin, 1.0f);
+          glm::vec3 localOrigin = glm::vec3(localOrigin4);
+
+          // 轉換射線方向 (視為向量，w=0)
+          glm::vec4 localDir4 = invModelMatrix * glm::vec4(rayDir, 0.0f);
+          glm::vec3 localDir = glm::normalize(glm::vec3(localDir4));
+
+          // 檢測相交
+          float t = 0;
+          if (m->aabb.intersect(localOrigin, localDir, t)) {
+            // 找出最近的物件 (t 代表距離)
+            if (t < closestDist && t > 0) {
+              closestDist = t;
+              hoveredObjIndex = i;
+            }
+          }
+        }
+
+        // 4. 如果有滑鼠指到的物件，繪製它的 AABB
+        if (hoveredObjIndex != -1) {
+          glUseProgram(debugShaderID);
+
+          Object* obj = ctx.objects[hoveredObjIndex];
+          Model* m = ctx.models[obj->modelIndex];
+
+          // 計算該物件的最終矩陣
+          glm::mat4 finalModelMatrix = obj->transformMatrix * m->modelMatrix;
+
+          // 繪製
+          renderAABB(m->aabb, debugShaderID, finalModelMatrix, view, proj);
+        }
+      }
+    }
+    // ---------------------------------------------------------
+
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -802,53 +1017,51 @@ int main() {
         ImGui::SameLine();
         bool enable = (ctx.directionLightEnable != 0);
         if (ImGui::Checkbox("Enable##dir", &enable)) ctx.directionLightEnable = enable ? 1 : 0;
-       
+
         static float time = 12.0f;
-       
+
         if (ImGui::SliderFloat("Time of Day##dir", &time, 6.0f, 18.0f, "%.1f:00")) {
           time = round(time * 6.0f) / 6.0f;  // 四捨五入到 10 分鐘
-         
+
           float angle = (time - 12.0f) * 15.0f;
           float radians = angle * 3.14159f / 180.0f;
-         
+
           ctx.directionLightDirection.x = sin(radians);
           ctx.directionLightDirection.y = -cos(radians);
           ctx.directionLightDirection.z = 0.0f;
-         
+
           // (6:00-11:00): 黃色 -> 白色
           // (11:00-13:00): 白色
           // (13:00-18:00): 白色 -> 橘黃色
-         
+
           if (time <= 11.0f) {
             // 早晨
             float t = (time - 6.0f) / 5.0f;
-            ctx.directionLightColor[0] = 0.85f;                  
-            ctx.directionLightColor[1] = 0.60f + 0.20f * t;      // G: 0.60 -> 0.80
-            ctx.directionLightColor[2] = 0.35f + 0.40f * t;      // B: 0.35 -> 0.75
-          }
-          else if (time >= 13.0f) {
+            ctx.directionLightColor[0] = 0.85f;
+            ctx.directionLightColor[1] = 0.60f + 0.20f * t;  // G: 0.60 -> 0.80
+            ctx.directionLightColor[2] = 0.35f + 0.40f * t;  // B: 0.35 -> 0.75
+          } else if (time >= 13.0f) {
             // 傍晚
             float t = (time - 13.0f) / 5.0f;
-            ctx.directionLightColor[0] = 0.85f;                  
-            ctx.directionLightColor[1] = 0.80f - 0.25f * t;      // G: 0.80 -> 0.55
-            ctx.directionLightColor[2] = 0.75f - 0.40f * t;      // B: 0.75 -> 0.35
-          }
-          else {
+            ctx.directionLightColor[0] = 0.85f;
+            ctx.directionLightColor[1] = 0.80f - 0.25f * t;  // G: 0.80 -> 0.55
+            ctx.directionLightColor[2] = 0.75f - 0.40f * t;  // B: 0.75 -> 0.35
+          } else {
             // 中午
             ctx.directionLightColor[0] = 0.85f;
             ctx.directionLightColor[1] = 0.80f;
             ctx.directionLightColor[2] = 0.75f;
           }
         }
-       
+
         int hour = (int)time;
         int minute = (int)((time - hour) * 60);
         ImGui::Text("Current: %02d:%02d", hour, minute);
-       
+
         ImGui::ColorEdit3("Color##dir", &ctx.directionLightColor[0]);
       }
       ImGui::Separator();
-      
+
       {
         const char* hint = "Use F1 to toggle cursor";
         ImGui::Separator();
@@ -891,7 +1104,7 @@ int main() {
       static float spawnPos[3] = {0.0f, 0.0f, 0.0f};
       static float spawnScale = 1.0f;
 
-      //Settings the position of Menu (on the right-top)
+      // Settings the position of Menu (on the right-top)
       const ImGuiViewport* viewport = ImGui::GetMainViewport();
       ImVec2 workPos = viewport->WorkPos;
       ImVec2 workSize = viewport->WorkSize;
@@ -899,7 +1112,7 @@ int main() {
 
       ImVec2 windowPos = ImVec2(workPos.x + workSize.x - EdgeSize, workPos.y + EdgeSize);
       ImVec2 window_pivot = ImVec2(1.0f, 0.0f);
-      ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, window_pivot); // Always made the menu can't move by users
+      ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, window_pivot);  // Always made the menu can't move by users
       ImGui::SetNextWindowSize(ImVec2(300, 400), ImGuiCond_FirstUseEver);
       ImGui::Begin("Furniture Menu");
 
@@ -918,7 +1131,7 @@ int main() {
         // 計算變換矩陣 (位置 + 縮放)
         glm::mat4 t = glm::translate(glm::mat4(1.0f), glm::vec3(spawnPos[0], spawnPos[1], spawnPos[2]));
         t = glm::scale(t, glm::vec3(spawnScale));
-        
+
         // Robot 對應 loadModels 中的 index 5
         Object* newObj = new Object(5, t);
         newObj->material = mFlatwhite;
@@ -930,7 +1143,7 @@ int main() {
         // 計算變換矩陣 (位置 + 縮放)
         glm::mat4 t = glm::translate(glm::mat4(1.0f), glm::vec3(spawnPos[0], spawnPos[1], spawnPos[2]));
         t = glm::scale(t, glm::vec3(spawnScale));
-        
+
         // Robot 對應 loadModels 中的 index 5
         Object* newObj = new Object(1, t);
         newObj->material = mFlatwhite;
@@ -942,10 +1155,10 @@ int main() {
         // 計算變換矩陣 (位置 + 縮放)
         glm::mat4 t = glm::translate(glm::mat4(1.0f), glm::vec3(spawnPos[0], spawnPos[1], spawnPos[2]));
         t = glm::scale(t, glm::vec3(spawnScale));
-        
+
         // outer
         Object* outer = new Object(2, t);
-        outer->material = mMirror; 
+        outer->material = mMirror;
         ctx.objects.push_back(outer);
         // inner
         Object* inner = new Object(3, t);
@@ -959,22 +1172,22 @@ int main() {
 
       int buttonCount = 0;
       for (const auto& item : furnitureList) {
-          if (item.modelIndex == -1) continue; 
+        if (item.modelIndex == -1) continue;
 
-          if (ImGui::Button(item.name.c_str(), ImVec2(100, 50))) {
-              glm::mat4 t = glm::translate(glm::mat4(1.0f), glm::vec3(spawnPos[0], spawnPos[1], spawnPos[2]));
-              t = glm::scale(t, glm::vec3(spawnScale));
+        if (ImGui::Button(item.name.c_str(), ImVec2(100, 50))) {
+          glm::mat4 t = glm::translate(glm::mat4(1.0f), glm::vec3(spawnPos[0], spawnPos[1], spawnPos[2]));
+          t = glm::scale(t, glm::vec3(spawnScale));
 
-              Object* newObj = new Object(item.modelIndex, t);
-              newObj->material = mFlatwhite; 
-              ctx.objects.push_back(newObj);
-          }
+          Object* newObj = new Object(item.modelIndex, t);
+          newObj->material = mFlatwhite;
+          ctx.objects.push_back(newObj);
+        }
 
-          buttonCount++;
-          if (buttonCount % 2 != 0) ImGui::SameLine();
+        buttonCount++;
+        if (buttonCount % 2 != 0) ImGui::SameLine();
       }
       ImGui::Separator();
-      ImGui::End(); 
+      ImGui::End();
     }
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

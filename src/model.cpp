@@ -11,6 +11,9 @@
 Model* Model::fromObjectFile(const char* obj_file) {
   Model* m = new Model();
 
+  m->minBound = glm::vec3(std::numeric_limits<float>::max());
+  m->maxBound = glm::vec3(std::numeric_limits<float>::lowest());
+
   std::ifstream ObjFile(obj_file);
 
   if (!ObjFile.is_open()) {
@@ -52,6 +55,14 @@ Model* Model::fromObjectFile(const char* obj_file) {
       float x, y, z;
       ss >> x >> y >> z;
       tempPoisitions.emplace_back(x, y, z);
+
+      if (x < m->minBound.x) m->minBound.x = x;
+      if (y < m->minBound.y) m->minBound.y = y;
+      if (z < m->minBound.z) m->minBound.z = z;
+
+      if (x > m->maxBound.x) m->maxBound.x = x;
+      if (y > m->maxBound.y) m->maxBound.y = y;
+      if (z > m->maxBound.z) m->maxBound.z = z;
     }
 
     else if (perfix == "vt") {
@@ -97,6 +108,8 @@ Model* Model::fromObjectFile(const char* obj_file) {
         m->positions.push_back(p.x);
         m->positions.push_back(p.y);
         m->positions.push_back(p.z);
+
+        m->aabb.fit(glm::vec3(p.x, p.y, p.z));
 
         m->normals.push_back(n.x);
         m->normals.push_back(n.y);
