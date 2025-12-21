@@ -870,9 +870,16 @@ int main() {
     {
       static float spawnPos[3] = {0.0f, 0.0f, 0.0f};
       static float spawnScale = 1.0f;
-      
-      //Settings the position of Menu
-      ImGui::SetNextWindowPos(ImVec2(50, 0), ImGuiCond_FirstUseEver);
+
+      //Settings the position of Menu (on the right-top)
+      const ImGuiViewport* viewport = ImGui::GetMainViewport();
+      ImVec2 workPos = viewport->WorkPos;
+      ImVec2 workSize = viewport->WorkSize;
+      float EdgeSize = 10.0f;
+
+      ImVec2 windowPos = ImVec2(workPos.x + workSize.x - EdgeSize, workPos.y + EdgeSize);
+      ImVec2 window_pivot = ImVec2(1.0f, 0.0f);
+      ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, window_pivot); // Always made the menu can't move by users
       ImGui::SetNextWindowSize(ImVec2(300, 400), ImGuiCond_FirstUseEver);
       ImGui::Begin("Furniture Menu");
 
@@ -932,7 +939,7 @@ int main() {
 
       int buttonCount = 0;
       for (const auto& item : furnitureList) {
-          if (item.modelIndex == -1) continue; // 如果載入失敗就別顯示按鈕
+          if (item.modelIndex == -1) continue; 
 
           if (ImGui::Button(item.name.c_str(), ImVec2(100, 50))) {
               glm::mat4 t = glm::translate(glm::mat4(1.0f), glm::vec3(spawnPos[0], spawnPos[1], spawnPos[2]));
