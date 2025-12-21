@@ -23,6 +23,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+// https://sketchfab.com/3d-models/eva-d434dfc3cb9244fbba83407ccabdd523#download ���J�o�Ӿ����H
 void initOpenGL();
 void resizeCallback(GLFWwindow* window, int width, int height);
 void keyCallback(GLFWwindow* window, int key, int, int action, int);
@@ -249,6 +250,7 @@ Model* createBezierVaseModel() {
       glm::vec2 t10(u0, v1);
       glm::vec2 t11(u1, v1);
 
+      // �T���� 1�Gp00, p10, p11
       vase->positions.push_back(p00.x);
       vase->positions.push_back(p00.y);
       vase->positions.push_back(p00.z);
@@ -272,6 +274,7 @@ Model* createBezierVaseModel() {
       vase->texcoords.push_back(t11.x);
       vase->texcoords.push_back(t11.y);
 
+      // �T���� 2�Gp00, p11, p01
       vase->positions.push_back(p00.x);
       vase->positions.push_back(p00.y);
       vase->positions.push_back(p00.z);
@@ -550,10 +553,9 @@ void setupObjects() {
 int main() {
   initOpenGL();
   GLFWwindow* window = OpenGLContext::getWindow();
-  glfwSetWindowTitle(window, "CG-Final-Project");
+  glfwSetWindowTitle(window, "CGFinalProject");
 
   g_isolatedViewer.init(window);
-
   // Init Camera helper
   Camera camera(glm::vec3(0, 2, 5));
   camera.initialize(OpenGLContext::getAspectRatio());
@@ -728,6 +730,59 @@ int main() {
       }
       ImGui::Separator();
 
+      // Time
+      ImGui::Text("Time");
+      {
+        ImGui::SameLine();
+        bool enable = (ctx.directionLightEnable != 0);
+        if (ImGui::Checkbox("Enable##dir", &enable)) ctx.directionLightEnable = enable ? 1 : 0;
+       
+        static float time = 12.0f;
+       
+        if (ImGui::SliderFloat("Time of Day##dir", &time, 6.0f, 18.0f, "%.1f:00")) {
+          time = round(time * 6.0f) / 6.0f;  // 四捨五入到 10 分鐘
+         
+          float angle = (time - 12.0f) * 15.0f;
+          float radians = angle * 3.14159f / 180.0f;
+         
+          ctx.directionLightDirection.x = sin(radians);
+          ctx.directionLightDirection.y = -cos(radians);
+          ctx.directionLightDirection.z = 0.0f;
+         
+          // (6:00-11:00): 黃色 -> 白色
+          // (11:00-13:00): 白色
+          // (13:00-18:00): 白色 -> 橘黃色
+         
+          if (time <= 11.0f) {
+            // 早晨
+            float t = (time - 6.0f) / 5.0f;
+            ctx.directionLightColor[0] = 0.85f;                  
+            ctx.directionLightColor[1] = 0.60f + 0.20f * t;      // G: 0.60 -> 0.80
+            ctx.directionLightColor[2] = 0.35f + 0.40f * t;      // B: 0.35 -> 0.75
+          }
+          else if (time >= 13.0f) {
+            // 傍晚
+            float t = (time - 13.0f) / 5.0f;
+            ctx.directionLightColor[0] = 0.85f;                  
+            ctx.directionLightColor[1] = 0.80f - 0.25f * t;      // G: 0.80 -> 0.55
+            ctx.directionLightColor[2] = 0.75f - 0.40f * t;      // B: 0.75 -> 0.35
+          }
+          else {
+            // 中午
+            ctx.directionLightColor[0] = 0.85f;
+            ctx.directionLightColor[1] = 0.80f;
+            ctx.directionLightColor[2] = 0.75f;
+          }
+        }
+       
+        int hour = (int)time;
+        int minute = (int)((time - hour) * 60);
+        ImGui::Text("Current: %02d:%02d", hour, minute);
+       
+        ImGui::ColorEdit3("Color##dir", &ctx.directionLightColor[0]);
+      }
+      ImGui::Separator();
+      
       {
         const char* hint = "Use F1 to toggle cursor";
         ImGui::Separator();
