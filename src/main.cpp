@@ -21,8 +21,6 @@
 #include "opengl_context.h"
 #include "program.h"
 #include "utils.h"
-#include "Setting.h"
-#include "ModelDisplay.h"
 
 #include "floor_helper.h"
 #include "imgui.h"
@@ -103,14 +101,11 @@ Model* createFurnitureModel(const std::string& objPath, const std::string& texPa
     return NULL;
   }
 
-    if (objPath.find("Table.obj") != std::string::npos) {
-      m->modelMatrix = glm::translate(m->modelMatrix, glm::vec3(-5.0f, 0.0f, -2.5f));
-    }
-    GLuint texture = createTexture(texPath.c_str());
-    m->textures.push_back(texture);
-    m->modelMatrix = glm::scale(m->modelMatrix, glm::vec3(scale));
-    m->drawMode = GL_TRIANGLES;
-    return m;
+  GLuint texture = createTexture(texPath.c_str());
+  m->textures.push_back(texture);
+  m->modelMatrix = glm::scale(m->modelMatrix, glm::vec3(scale));
+  m->drawMode = GL_TRIANGLES;
+  return m;
 }
 
 void loadMaterial() {
@@ -593,8 +588,8 @@ void loadModels() {
   }
 }
 
-float robot_x = 3.0f;
-float robot_z = 2.0f;
+float robot_x = 0.0f;
+float robot_z = 0.0f;
 void setupObjects() {
   /* TODO#2-2: Set up the object by the model vector
    * Note:
@@ -827,6 +822,12 @@ int main() {
     glfwPollEvents();
     // Update camera position and view
     camera.move(window);
+      if (isRobotView) {
+        std::cout << "in\n";
+        float eyeHeight = 3.0f;
+        camera.position = glm::vec3(robot_x, eyeHeight, robot_z);
+        camera.updateViewMatrix();
+    }
     // GL_XXX_BIT can simply "OR" together to use.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     /// TO DO Enable DepthTest
@@ -1021,41 +1022,40 @@ int main() {
     ImGui::NewFrame();
     // Lights control panel
     {
-      ImGui::SetNextWindowSize(ImVec2(300, 400), ImGuiCond_FirstUseEver);
       ImGui::Begin("Lights Control");
 
       // --- Directional Light ---
-      // ImGui::Text("Directional Light");
-      // {
-      //   ImGui::SameLine();
-      //   bool enable = (ctx.directionLightEnable != 0);
-      //   if (ImGui::Checkbox("Enable##dir", &enable)) ctx.directionLightEnable = enable ? 1 : 0;
-      //   ImGui::SliderFloat3("Dir X/Y/Z##dir", &ctx.directionLightDirection.x, -50.0f, 50.0f);
-      //   ImGui::ColorEdit3("Color##dir", &ctx.directionLightColor[0]);
-      // }
-      // ImGui::Separator();
+      ImGui::Text("Directional Light");
+      {
+        ImGui::SameLine();
+        bool enable = (ctx.directionLightEnable != 0);
+        if (ImGui::Checkbox("Enable##dir", &enable)) ctx.directionLightEnable = enable ? 1 : 0;
+        ImGui::SliderFloat3("Dir X/Y/Z##dir", &ctx.directionLightDirection.x, -50.0f, 50.0f);
+        ImGui::ColorEdit3("Color##dir", &ctx.directionLightColor[0]);
+      }
+      ImGui::Separator();
 
-      // // --- Point Light ---
-      // ImGui::Text("Point Light");
-      // {
-      //   ImGui::SameLine();
-      //   bool enable = (ctx.pointLightEnable != 0);
-      //   if (ImGui::Checkbox("Enable##point", &enable)) ctx.pointLightEnable = enable ? 1 : 0;
-      //   ImGui::SliderFloat3("Pos X/Y/Z##point", &ctx.pointLightPosition.x, -10.0f, 10.0f);
-      //   ImGui::ColorEdit3("Color##point", &ctx.pointLightColor[0]);
-      // }
-      // ImGui::Separator();
+      // --- Point Light ---
+      ImGui::Text("Point Light");
+      {
+        ImGui::SameLine();
+        bool enable = (ctx.pointLightEnable != 0);
+        if (ImGui::Checkbox("Enable##point", &enable)) ctx.pointLightEnable = enable ? 1 : 0;
+        ImGui::SliderFloat3("Pos X/Y/Z##point", &ctx.pointLightPosition.x, -10.0f, 10.0f);
+        ImGui::ColorEdit3("Color##point", &ctx.pointLightColor[0]);
+      }
+      ImGui::Separator();
 
-      // // --- Spot Light ---
-      // ImGui::Text("Spot Light");
-      // {
-      //   ImGui::SameLine();
-      //   bool enable = (ctx.spotLightEnable != 0);
-      //   if (ImGui::Checkbox("Enable##spot", &enable)) ctx.spotLightEnable = enable ? 1 : 0;
-      //   ImGui::SliderFloat3("Pos X/Y/Z##spot", &ctx.spotLightPosition.x, -10.0f, 10.0f);
-      //   ImGui::ColorEdit3("Color##spot", &ctx.spotLightColor[0]);
-      // }
-      // ImGui::Separator();
+      // --- Spot Light ---
+      ImGui::Text("Spot Light");
+      {
+        ImGui::SameLine();
+        bool enable = (ctx.spotLightEnable != 0);
+        if (ImGui::Checkbox("Enable##spot", &enable)) ctx.spotLightEnable = enable ? 1 : 0;
+        ImGui::SliderFloat3("Pos X/Y/Z##spot", &ctx.spotLightPosition.x, -10.0f, 10.0f);
+        ImGui::ColorEdit3("Color##spot", &ctx.spotLightColor[0]);
+      }
+      ImGui::Separator();
 
       // Time
       ImGui::Text("Time");
@@ -1065,7 +1065,7 @@ int main() {
         if (ImGui::Checkbox("Enable##dir", &enable)) ctx.directionLightEnable = enable ? 1 : 0;
 
         static float time = 12.0f;
-        SceneTime = time;
+
         if (ImGui::SliderFloat("Time of Day##dir", &time, 6.0f, 18.0f, "%.1f:00")) {
           time = round(time * 6.0f) / 6.0f;  // 四捨五入到 10 分鐘
 
@@ -1302,13 +1302,6 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int) {
         }
         break;
       }
-
-      case GLFW_KEY_E:{
-        std::cout << "Key E Pressed\n";
-        Enabled = !Enabled;
-        // std::cout << "Enabled = " << Enabled << "\n"; 
-        break;
-      }
       default:
         break;
     }
@@ -1325,19 +1318,19 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int) {
       case GLFW_KEY_DOWN:
         std::cout << "Down Key Pressed" << std::endl;
         robot_z = robot_z - 0.2f;
-        if (robot_z <= 0.5f) robot_z = 0.5f;
+        if (robot_z <= 0.0f) robot_z = 0.0f;
         break;
 
       case GLFW_KEY_LEFT:
         std::cout << "Left Key Pressed" << std::endl;
         robot_x = robot_x - 0.2f;
-        if (robot_x <= 0.5f) robot_x = 0.5f;
+        if (robot_x <= 0.0f) robot_x = 0.0f;
         break;
 
       case GLFW_KEY_RIGHT:
         std::cout << "Right Key Pressed" << std::endl;
         robot_x = robot_x + 0.2f;
-        if (robot_x >= 6.9f) robot_x = 6.9;
+        if (robot_x >= 8.192f) robot_x = 8.192;
         break;
     }
   }
