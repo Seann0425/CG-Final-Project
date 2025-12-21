@@ -47,6 +47,7 @@ int whiteFloorModelIndex = -1;
 int VerticalWallModelIndex = -1;
 int VerticalWallModelIndex2 = -1;
 int VerticalWallModelIndex3 = -1;
+int selectedObjIndex = -1;
 Context ctx;
 IsolatedViewer g_isolatedViewer;
 
@@ -899,19 +900,16 @@ int main() {
     }
 
     // ---------------------------------------------------------
-    // Ray Casting & AABB Selection Logic
+    // Ray Casting & Interaction Logic (Updated)
     // ---------------------------------------------------------
     if (ctx.camera != nullptr) {
-      // 1. 檢查游標是否顯示 (F1 切換後的狀態)
       int cursorMode = glfwGetInputMode(window, GLFW_CURSOR);
 
-      // 只有在游標顯示模式下才進行檢測與繪製
       if (cursorMode == GLFW_CURSOR_NORMAL) {
-        // 準備矩陣
+        // 1. 準備矩陣與射線
         glm::mat4 view = glm::make_mat4(ctx.camera->getViewMatrix());
         glm::mat4 proj = glm::make_mat4(ctx.camera->getProjectionMatrix());
 
-        // 2. 計算世界空間射線 (World Ray)
         double mouseX, mouseY;
         glfwGetCursorPos(window, &mouseX, &mouseY);
         int screenW, screenH;
@@ -920,9 +918,9 @@ int main() {
         glm::vec3 rayOrigin = glm::make_vec3(ctx.camera->getPosition());
         glm::vec3 rayDir = getRayFromMouse(mouseX, mouseY, screenW, screenH, view, proj);
 
-        // 3. 遍歷所有物件，尋找最近的交點
+        // 2. 射線檢測 (Ray Casting)
         float closestDist = std::numeric_limits<float>::max();
-        int hoveredObjIndex = -1;
+        int hoveredObjIndex = -1;  // 滑鼠目前懸停的物件
 
         for (int i = 0; i < ctx.objects.size(); ++i) {
           Object* obj = ctx.objects[i];
@@ -930,23 +928,17 @@ int main() {
 
           Model* m = ctx.models[obj->modelIndex];
 
-          // --- 關鍵步驟：將射線轉入物件的 Local Space ---
-          // 我們不把 AABB 轉到世界座標(會變形)，而是把射線逆轉回模型座標
+          // 轉到 Local Space 檢測
           glm::mat4 modelMatrix = obj->transformMatrix * m->modelMatrix;
           glm::mat4 invModelMatrix = glm::inverse(modelMatrix);
 
-          // 轉換射線起點 (視為點，w=1)
           glm::vec4 localOrigin4 = invModelMatrix * glm::vec4(rayOrigin, 1.0f);
           glm::vec3 localOrigin = glm::vec3(localOrigin4);
-
-          // 轉換射線方向 (視為向量，w=0)
           glm::vec4 localDir4 = invModelMatrix * glm::vec4(rayDir, 0.0f);
           glm::vec3 localDir = glm::normalize(glm::vec3(localDir4));
 
-          // 檢測相交
           float t = 0;
           if (m->aabb.intersect(localOrigin, localDir, t)) {
-            // 找出最近的物件 (t 代表距離)
             if (t < closestDist && t > 0) {
               closestDist = t;
               hoveredObjIndex = i;
@@ -954,18 +946,51 @@ int main() {
           }
         }
 
-        // 4. 如果有滑鼠指到的物件，繪製它的 AABB
-        if (hoveredObjIndex != -1) {
-          glUseProgram(debugShaderID);
+        // 3. [New] 處理滑鼠點擊 (選取物件)
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+          if (hoveredObjIndex != -1) {
+            selectedObjIndex = hoveredObjIndex;
+            std::cout << "Selected Object Index: " << selectedObjIndex << std::endl;
+          }
+          // 選擇性功能：點擊空白處取消選取 (如果不想要可以拿掉下面這行)
+          // else { selectedObjIndex = -1; }
+        }
 
-          Object* obj = ctx.objects[hoveredObjIndex];
-          Model* m = ctx.models[obj->modelIndex];
+        // 4. [New] 處理物件移動 (WASD)
+        if (selectedObjIndex != -1 && selectedObjIndex < ctx.objects.size()) {
+          Object* obj = ctx.objects[selectedObjIndex];
+          float moveSpeed = 0.05f;  // 移動速度
 
-          // 計算該物件的最終矩陣
-          glm::mat4 finalModelMatrix = obj->transformMatrix * m->modelMatrix;
+          glm::vec3 moveDir(0.0f);
+          if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) moveDir.z -= moveSpeed;  // 往後
+          if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) moveDir.z += moveSpeed;  // 往前
+          if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) moveDir.x -= moveSpeed;  // 往左
+          if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) moveDir.x += moveSpeed;  // 往右
 
-          // 繪製
-          renderAABB(m->aabb, debugShaderID, finalModelMatrix, view, proj);
+          // 如果有按鍵，更新矩陣
+          if (glm::length(moveDir) > 0) {
+            // 在 World Space 移動 (乘在左邊)
+            obj->transformMatrix = glm::translate(glm::mat4(1.0f), moveDir) * obj->transformMatrix;
+          }
+        }
+
+        // 5. 繪製 AABB (Hover 或 Selected 都要畫)
+        glUseProgram(debugShaderID);
+        for (int i = 0; i < ctx.objects.size(); ++i) {
+          // 條件：是「目前滑鼠指到的」或是「被選取鎖定的」
+          if (i == hoveredObjIndex || i == selectedObjIndex) {
+            Object* obj = ctx.objects[i];
+            if (obj->modelIndex >= 0 && obj->modelIndex < ctx.models.size()) {
+              Model* m = ctx.models[obj->modelIndex];
+              glm::mat4 finalModelMatrix = obj->transformMatrix * m->modelMatrix;
+
+              // 選取時用綠色，Hover 用紅色 (區分一下比較好看)
+              glm::vec3 color = (i == selectedObjIndex) ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f);
+              glUniform3f(glGetUniformLocation(debugShaderID, "color"), color.x, color.y, color.z);
+
+              renderAABB(m->aabb, debugShaderID, finalModelMatrix, view, proj);
+            }
+          }
         }
       }
     }
@@ -1207,8 +1232,13 @@ int main() {
 
 void keyCallback(GLFWwindow* window, int key, int, int action, int) {
   // Press ESC to close the window.
-  if (key == GLFW_KEY_ESCAPE) {
-    glfwSetWindowShouldClose(window, GLFW_TRUE);
+  if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+    if (selectedObjIndex != -1) {
+      selectedObjIndex = -1;
+      std::cout << "Selection Cleared" << std::endl;
+    } else {
+      glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
     return;
   }
   if (action == GLFW_PRESS) {
