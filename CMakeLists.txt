@@ -13,9 +13,6 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 
 option(BUILD_SHARED_LIBS "Build shared library" ON)
 
-# [修正] 移除這裡的全域定義，避免汙染到 GLFW 的編譯
-# add_compile_definitions(GLFW_INCLUDE_NONE) <--- 刪除這行
-
 if (NOT (CMAKE_BUILD_TYPE OR CMAKE_CONFIGURATION_TYPES))
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Release" "RelWithDebInfo" "MinSizeRel" "Debug")
@@ -110,7 +107,6 @@ file(GLOB IMGUI_SOURCES
 add_library(imgui_lib STATIC ${IMGUI_SOURCES})
 target_include_directories(imgui_lib PUBLIC extern/imgui)
 target_link_libraries(imgui_lib PRIVATE glfw) 
-# ImGui 需要這個定義
 target_compile_definitions(imgui_lib PUBLIC GLFW_INCLUDE_NONE)
 target_compile_definitions(imgui_lib PUBLIC IMGUI_IMPL_OPENGL_LOADER_GLAD)
 
@@ -129,13 +125,9 @@ target_link_libraries(HW2 PRIVATE
     imgui_lib
 )
 
-# [修正] 只針對 HW2 加入這個定義，這樣就不會影響到 glfw 的編譯
 target_compile_definitions(HW2 PRIVATE GLFW_INCLUDE_NONE)
 
 target_include_directories(HW2 PRIVATE include)
 
-# ========================================================
-# 直接在 Configure 階段強制複製資源 (比 POST_BUILD 更保險)
-# ========================================================
 file(COPY ${CMAKE_SOURCE_DIR}/assets DESTINATION ${CMAKE_SOURCE_DIR}/bin)
 message(STATUS "Assets copied to bin/assets")
