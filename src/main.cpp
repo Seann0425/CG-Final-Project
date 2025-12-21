@@ -23,11 +23,29 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "floor_helper.h"
 // https://sketchfab.com/3d-models/eva-d434dfc3cb9244fbba83407ccabdd523#download ���J�o�Ӿ����H
 void initOpenGL();
 void resizeCallback(GLFWwindow* window, int width, int height);
 void keyCallback(GLFWwindow* window, int key, int, int action, int);
 
+struct FurnitureItem{
+  std::string name;
+  std::string objPath;
+  std::string texPath;
+  float Scale;
+  int modelIndex;
+};
+
+std::vector<FurnitureItem> furnitureList = {
+  { "TV", "../assets/models/tv/tv.obj", "../assets/models/tv/tv.png", 1.0f, -1 },
+  { "Sofa", "../assets/models/sofa/Sofa.obj", "../assets/models/sofa/textures/SofaBaseColor.png", 0.001f, -1 },
+  { "Table", "../assets/models/table/Table.obj", "../assets/models/table/textures/TableBaseColor.png", 0.005f, -1 }
+};
+int whiteFloorModelIndex = -1;
+int VerticalWallModelIndex = -1;
+int VerticalWallModelIndex2 = -1;
+int VerticalWallModelIndex3 = -1;
 Context ctx;
 IsolatedViewer g_isolatedViewer;
 
@@ -69,6 +87,20 @@ class DepthProgram : public ExampleProgram {
     glUseProgram(0);
   }
 };
+
+Model* createFurnitureModel(const std::string& objPath, const std::string& texPath, float scale) {
+    Model* m = Model::fromObjectFile(objPath.c_str());
+    if (m == NULL) {
+        std::cout << "ERROR: Failed to load " << objPath << std::endl;
+        return NULL;
+    }
+
+    GLuint texture = createTexture(texPath.c_str());
+    m->textures.push_back(texture);
+    m->modelMatrix = glm::scale(m->modelMatrix, glm::vec3(scale));
+    m->drawMode = GL_TRIANGLES;
+    return m;
+}
 
 void loadMaterial() {
   mFlatwhite.ambient = glm::vec3(0.5f, 0.5f, 0.5f);
@@ -522,6 +554,32 @@ void loadModels() {
   ctx.models.push_back(createBezierVaseInnerModel());
   ctx.models.push_back(createBezierVaseBottomModel());
   ctx.models.push_back(createRobot());
+
+  Model* floorModel = createWhiteFloor();
+  ctx.models.push_back(floorModel);
+  whiteFloorModelIndex = (int)ctx.models.size() - 1;
+  Model* VerticalWall = createVerticalFloor();
+  ctx.models.push_back(VerticalWall);
+  VerticalWallModelIndex = (int)ctx.models.size() - 1;
+
+  Model* LeftWall = createVerticalSideFloor(true);
+  ctx.models.push_back(LeftWall);
+  VerticalWallModelIndex2 = (int)ctx.models.size() - 1;
+
+  Model* RightWall = createVerticalSideFloor(false);
+  ctx.models.push_back(RightWall);
+  VerticalWallModelIndex3 = (int)ctx.models.size() - 1;
+
+  for(auto& item : furnitureList){
+    Model* m = createFurnitureModel(item.objPath, item.texPath, item.Scale);
+    if (m != NULL) {
+      ctx.models.push_back(m);
+      item.modelIndex = (int)ctx.models.size() - 1; 
+      std::cout << "Loaded " << item.name << " at index " << item.modelIndex << std::endl;
+    } else {
+      std::cout << "Skipped " << item.name << " due to error." << std::endl;
+    }
+  }
 }
 
 float robot_x = 0.0f;
@@ -538,15 +596,23 @@ void setupObjects() {
   glm::mat4 robotform = glm::translate(glm::mat4(1.0f), glm::vec3(robot_x, 0.0f, robot_z));
   ctx.objects.push_back(new Object(0, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, 0.0, 0.0))));
   (*ctx.objects.rbegin())->material = mFlatwhite;
-  ctx.objects.push_back(new Object(1, glm::translate(glm::mat4(1.0f), glm::vec3(2.0, 0, 3.0))));
-  (*ctx.objects.rbegin())->material = mFlatwhite;
-  ctx.objects.push_back(new Object(2, vaseform));
-  (*ctx.objects.rbegin())->material = mMirror;
-  ctx.objects.push_back(new Object(3, vaseform));
-  (*ctx.objects.rbegin())->material = mFlatwhite;
-  ctx.objects.push_back(new Object(4, vaseform));
-  (*ctx.objects.rbegin())->material = mFlatwhite;
+  // ctx.objects.push_back(new Object(1, glm::translate(glm::mat4(1.0f), glm::vec3(2.0, 0, 3.0))));
+  // (*ctx.objects.rbegin())->material = mFlatwhite;
+  // ctx.objects.push_back(new Object(2, vaseform));
+  // (*ctx.objects.rbegin())->material = mMirror;
+  // ctx.objects.push_back(new Object(3, vaseform));
+  // (*ctx.objects.rbegin())->material = mFlatwhite;
+  // ctx.objects.push_back(new Object(4, vaseform));
+  // (*ctx.objects.rbegin())->material = mFlatwhite;
   ctx.objects.push_back(new Object(5, robotform));
+  (*ctx.objects.rbegin())->material = mFlatwhite;
+  ctx.objects.push_back(new Object(whiteFloorModelIndex, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, -0.01, 0.0))));
+  (*ctx.objects.rbegin())->material = mFlatwhite;
+  ctx.objects.push_back(new Object(VerticalWallModelIndex, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, 0.0, 0.0))));
+  (*ctx.objects.rbegin())->material = mFlatwhite;
+  ctx.objects.push_back(new Object(VerticalWallModelIndex2, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, 0.0, 0.0))));
+  (*ctx.objects.rbegin())->material = mFlatwhite;
+  ctx.objects.push_back(new Object(VerticalWallModelIndex3, glm::translate(glm::identity<glm::mat4>(), glm::vec3(0.0, 0.0, 0.0))));
   (*ctx.objects.rbegin())->material = mFlatwhite;
 }
 
@@ -619,7 +685,7 @@ int main() {
     glClearDepth(1.0f);
 
     // bouns start
-    Object* robot = ctx.objects[5];
+    Object* robot = ctx.objects[1];
     glm::mat4 newTransform = glm::translate(glm::mat4(1.0f), glm::vec3(robot_x, 0.0f, robot_z));
     // newTransform = glm::scale(newTransform, glm::vec3(0.5f));
     robot->transformMatrix = newTransform;
@@ -818,6 +884,97 @@ int main() {
       }
 
       ImGui::End();
+    }
+
+    // Funiture List
+    {
+      static float spawnPos[3] = {0.0f, 0.0f, 0.0f};
+      static float spawnScale = 1.0f;
+
+      //Settings the position of Menu (on the right-top)
+      const ImGuiViewport* viewport = ImGui::GetMainViewport();
+      ImVec2 workPos = viewport->WorkPos;
+      ImVec2 workSize = viewport->WorkSize;
+      float EdgeSize = 10.0f;
+
+      ImVec2 windowPos = ImVec2(workPos.x + workSize.x - EdgeSize, workPos.y + EdgeSize);
+      ImVec2 window_pivot = ImVec2(1.0f, 0.0f);
+      ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, window_pivot); // Always made the menu can't move by users
+      ImGui::SetNextWindowSize(ImVec2(300, 400), ImGuiCond_FirstUseEver);
+      ImGui::Begin("Furniture Menu");
+
+      // 調整生成位置與大小
+      ImGui::Text("Spawn Settings");
+      ImGui::DragFloat("Pos X", &spawnPos[0], 0.1f, 0.0f, 8.1f);
+      ImGui::DragFloat("Pos Y", &spawnPos[1], 0.0f, 0.0f, 10.0f);
+      ImGui::DragFloat("Pos Z", &spawnPos[2], 0.1f, 0.0f, 5.1f);
+      ImGui::DragFloat("Scale", &spawnScale, 0.05f, 0.1f, 5.0f);
+
+      ImGui::Separator();
+      ImGui::Text("Select Item to Add:");
+
+      // --- 按鈕 1: Robot ---
+      if (ImGui::Button("Robot", ImVec2(100, 50))) {
+        // 計算變換矩陣 (位置 + 縮放)
+        glm::mat4 t = glm::translate(glm::mat4(1.0f), glm::vec3(spawnPos[0], spawnPos[1], spawnPos[2]));
+        t = glm::scale(t, glm::vec3(spawnScale));
+        
+        // Robot 對應 loadModels 中的 index 5
+        Object* newObj = new Object(5, t);
+        newObj->material = mFlatwhite;
+        ctx.objects.push_back(newObj);
+      }
+      ImGui::SameLine();
+      // --- 按鈕 2: Bottle ---
+      if (ImGui::Button("Bottle", ImVec2(100, 50))) {
+        // 計算變換矩陣 (位置 + 縮放)
+        glm::mat4 t = glm::translate(glm::mat4(1.0f), glm::vec3(spawnPos[0], spawnPos[1], spawnPos[2]));
+        t = glm::scale(t, glm::vec3(spawnScale));
+        
+        // Robot 對應 loadModels 中的 index 5
+        Object* newObj = new Object(1, t);
+        newObj->material = mFlatwhite;
+        ctx.objects.push_back(newObj);
+      }
+      ImGui::SameLine();
+      // --- 按鈕 3: Vase ---
+      if (ImGui::Button("Vase", ImVec2(100, 50))) {
+        // 計算變換矩陣 (位置 + 縮放)
+        glm::mat4 t = glm::translate(glm::mat4(1.0f), glm::vec3(spawnPos[0], spawnPos[1], spawnPos[2]));
+        t = glm::scale(t, glm::vec3(spawnScale));
+        
+        // outer
+        Object* outer = new Object(2, t);
+        outer->material = mMirror; 
+        ctx.objects.push_back(outer);
+        // inner
+        Object* inner = new Object(3, t);
+        inner->material = mFlatwhite;
+        ctx.objects.push_back(inner);
+        // bottom
+        Object* bottom = new Object(4, t);
+        bottom->material = mFlatwhite;
+        ctx.objects.push_back(bottom);
+      }
+
+      int buttonCount = 0;
+      for (const auto& item : furnitureList) {
+          if (item.modelIndex == -1) continue; 
+
+          if (ImGui::Button(item.name.c_str(), ImVec2(100, 50))) {
+              glm::mat4 t = glm::translate(glm::mat4(1.0f), glm::vec3(spawnPos[0], spawnPos[1], spawnPos[2]));
+              t = glm::scale(t, glm::vec3(spawnScale));
+
+              Object* newObj = new Object(item.modelIndex, t);
+              newObj->material = mFlatwhite; 
+              ctx.objects.push_back(newObj);
+          }
+
+          buttonCount++;
+          if (buttonCount % 2 != 0) ImGui::SameLine();
+      }
+      ImGui::Separator();
+      ImGui::End(); 
     }
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
