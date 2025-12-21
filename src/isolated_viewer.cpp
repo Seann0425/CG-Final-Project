@@ -19,7 +19,8 @@ IsolatedViewer::IsolatedViewer()
       lastMouseY(0.0f),
       cameraYaw(-90.0f),
       cameraPitch(0.0f),
-      cameraRadius(10.0f) {}
+      cameraRadius(10.0f),
+      focusPoint(0.0f, 0.0f, 0.0f) {}
 
 IsolatedViewer::~IsolatedViewer() {
   freeGPUResources();
@@ -122,6 +123,7 @@ void IsolatedViewer::setTarget(std::shared_ptr<Model> target) {
     cameraRadius = 10.0f;
     cameraYaw = -90.0f;
     cameraPitch = 0.0f;
+    focusPoint = glm::vec3(0.0f, 0.0f, 0.0f);
 
     glfwSetWindowShouldClose(viewerWindow, GLFW_FALSE);
     glfwShowWindow(viewerWindow);
@@ -200,9 +202,10 @@ void IsolatedViewer::render(Program& shader) {
 
   glfwMakeContextCurrent(viewerWindow);
 
+  // ... (Viewport 與 Clear 設定保持不變) ...
   int width, height;
   glfwGetFramebufferSize(viewerWindow, &width, &height);
-  if (width == 0 || height == 0) return;
+  if (width == 0 || height == 0) return;  // 視窗最小化時直接返回
   glViewport(0, 0, width, height);
 
   glEnable(GL_DEPTH_TEST);
@@ -215,19 +218,53 @@ void IsolatedViewer::render(Program& shader) {
 
   shader.use();
 
-  // Camera Calculation (Orbit)
+  // === [新增] WASD 平移邏輯 ===
+  // 計算相機的前、右、上向量，確保移動方向是相對於「目前的視角」
+  // 1. 計算目前的相機方向 (從球面座標算出來的)
+  glm::vec3 front;
+  front.x = cos(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
+  front.y = sin(glm::radians(cameraPitch));
+  front.z = sin(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
+  glm::vec3 cameraFront = glm::normalize(front);
+
+  glm::vec3 cameraRight = glm::normalize(glm::cross(cameraFront, glm::vec3(0.0f, 1.0f, 0.0f)));
+  glm::vec3 cameraUp = glm::normalize(glm::cross(cameraRight, cameraFront));
+
+  float moveSpeed = 0.05f * cameraRadius * 0.5f;  // 移動速度隨距離縮放，離越遠動越快
+
+  // W: 向上平移 (沿著相機的 Up 向量)
+  if (glfwGetKey(viewerWindow, GLFW_KEY_W) == GLFW_PRESS) focusPoint += cameraUp * moveSpeed;
+
+  // S: 向下平移
+  if (glfwGetKey(viewerWindow, GLFW_KEY_S) == GLFW_PRESS) focusPoint -= cameraUp * moveSpeed;
+
+  // A: 向左平移 (沿著相機的 Right 向量的反方向)
+  if (glfwGetKey(viewerWindow, GLFW_KEY_A) == GLFW_PRESS) focusPoint -= cameraRight * moveSpeed;
+
+  // D: 向右平移
+  if (glfwGetKey(viewerWindow, GLFW_KEY_D) == GLFW_PRESS) focusPoint += cameraRight * moveSpeed;
+  // ============================
+
+  // Camera Calculation (Orbit + Pan)
+  // 相機位置 = 對焦點 + 球面座標偏移量
   float camX = cameraRadius * cos(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
   float camY = cameraRadius * sin(glm::radians(cameraPitch));
   float camZ = cameraRadius * sin(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
-  glm::vec3 cameraPos = glm::vec3(camX, camY, camZ);
+
+  // 最終相機位置要加上 focusPoint
+  glm::vec3 cameraPos = focusPoint + glm::vec3(camX, camY, camZ);
 
   // Matrices
-  glm::mat4 model = currentTarget->modelMatrix;  // Only use original model matrix
-  glm::mat4 view = glm::lookAt(cameraPos, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+  glm::mat4 model = currentTarget->modelMatrix;
+  // View Matrix: 相機位置 -> 看向 focusPoint -> 上方為 (0,1,0)
+  // 注意：這裡的 Up 向量建議用 World Up (0,1,0)，除非你要做飛行模擬的滾轉
+  glm::mat4 view = glm::lookAt(cameraPos, focusPoint, glm::vec3(0, 1, 0));
   glm::mat4 proj = glm::perspective(glm::radians(45.0f), (float)width / height, 0.1f, 200.0f);
   glm::mat4 tiModel = glm::transpose(glm::inverse(model));
 
-  // Uniforms
+  // ... (後面的 Uniform 設定與 Drawing 保持不變) ...
+  // Copy 之前的 code 即可，記得 viewPos 也要更新成新的 cameraPos
+
   GLint viewLoc = glGetUniformLocation(shader.getHandle(), "ViewMatrix");
   GLint projLoc = glGetUniformLocation(shader.getHandle(), "Projection");
   GLint modelLoc = glGetUniformLocation(shader.getHandle(), "ModelMatrix");
@@ -241,15 +278,16 @@ void IsolatedViewer::render(Program& shader) {
   GLint viewPosLoc = glGetUniformLocation(shader.getHandle(), "viewPos");
   if (viewPosLoc >= 0) glUniform3fv(viewPosLoc, 1, &cameraPos[0]);
 
-  // Light
+  // Light (Headlamp)
+  // 讓燈光繼續跟著相機走，方向設為 (focusPoint - cameraPos) 即 -offset
   glUniform1i(glGetUniformLocation(shader.getHandle(), "dl.enable"), 1);
-  glUniform3f(glGetUniformLocation(shader.getHandle(), "dl.direction"), -camX, -camY, -camZ);  // Headlamp effect
+  glUniform3f(glGetUniformLocation(shader.getHandle(), "dl.direction"), -camX, -camY, -camZ);
   glUniform3f(glGetUniformLocation(shader.getHandle(), "dl.lightColor"), 1.0f, 1.0f, 1.0f);
 
+  // ... 其他 Light/Material 設定 ...
   glUniform1i(glGetUniformLocation(shader.getHandle(), "pl.enable"), 0);
   glUniform1i(glGetUniformLocation(shader.getHandle(), "sl.enable"), 0);
 
-  // Material
   glUniform3f(glGetUniformLocation(shader.getHandle(), "material.ambient"), 0.3f, 0.3f, 0.3f);
   glUniform3f(glGetUniformLocation(shader.getHandle(), "material.diffuse"), 0.8f, 0.8f, 0.8f);
   glUniform3f(glGetUniformLocation(shader.getHandle(), "material.specular"), 0.8f, 0.8f, 0.8f);
@@ -264,7 +302,6 @@ void IsolatedViewer::render(Program& shader) {
       glBindTexture(GL_TEXTURE_2D, currentTarget->textures[0]);
       glUniform1i(glGetUniformLocation(shader.getHandle(), "ourTexture"), 0);
     }
-
     glDrawArrays(currentTarget->drawMode, 0, currentTarget->numVertex);
     glBindVertexArray(0);
   }
