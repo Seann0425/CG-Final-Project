@@ -50,6 +50,10 @@ int VerticalWallModelIndex = -1;
 int VerticalWallModelIndex2 = -1;
 int VerticalWallModelIndex3 = -1;
 int selectedObjIndex = -1;
+bool isRobotView = false;
+glm::vec3 savedPos;
+glm::quat savedRot;
+
 Context ctx;
 IsolatedViewer g_isolatedViewer;
 
@@ -99,14 +103,11 @@ Model* createFurnitureModel(const std::string& objPath, const std::string& texPa
     return NULL;
   }
 
-    if (objPath.find("Table.obj") != std::string::npos) {
-      m->modelMatrix = glm::translate(m->modelMatrix, glm::vec3(-5.0f, 0.0f, -2.5f));
-    }
-    GLuint texture = createTexture(texPath.c_str());
-    m->textures.push_back(texture);
-    m->modelMatrix = glm::scale(m->modelMatrix, glm::vec3(scale));
-    m->drawMode = GL_TRIANGLES;
-    return m;
+  GLuint texture = createTexture(texPath.c_str());
+  m->textures.push_back(texture);
+  m->modelMatrix = glm::scale(m->modelMatrix, glm::vec3(scale));
+  m->drawMode = GL_TRIANGLES;
+  return m;
 }
 
 void loadMaterial() {
@@ -589,8 +590,8 @@ void loadModels() {
   }
 }
 
-float robot_x = 3.0f;
-float robot_z = 2.0f;
+float robot_x = 0.0f;
+float robot_z = 0.0f;
 void setupObjects() {
   /* TODO#2-2: Set up the object by the model vector
    * Note:
@@ -824,6 +825,12 @@ int main() {
     // Update camera position and view
     camera.move(window);
     EnableWall(ctx, Enabled, VerticalWallModelIndex, VerticalWallModelIndex2, VerticalWallModelIndex3, SceneTime);
+      if (isRobotView) {
+        std::cout << "in\n";
+        float eyeHeight = 3.0f;
+        camera.position = glm::vec3(robot_x, eyeHeight, robot_z);
+        camera.updateViewMatrix();
+    }
     // GL_XXX_BIT can simply "OR" together to use.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     /// TO DO Enable DepthTest
@@ -834,10 +841,10 @@ int main() {
     glClearDepth(1.0f);
 
     // // bouns start
-    // Object* robot = ctx.objects[1];
-    // glm::mat4 newTransform = glm::translate(glm::mat4(1.0f), glm::vec3(robot_x, 0.0f, robot_z));
-    // // newTransform = glm::scale(newTransform, glm::vec3(0.5f));
-    // robot->transformMatrix = newTransform;
+    Object* robot = ctx.objects[1];
+    glm::mat4 newTransform = glm::translate(glm::mat4(1.0f), glm::vec3(robot_x, 0.0f, robot_z));
+    // newTransform = glm::scale(newTransform, glm::vec3(0.5f));
+    robot->transformMatrix = newTransform;
     // // bouns end
 
     // bonus start
@@ -966,17 +973,28 @@ int main() {
         if (selectedObjIndex != -1 && selectedObjIndex < ctx.objects.size()) {
           Object* obj = ctx.objects[selectedObjIndex];
           float moveSpeed = 0.05f;  // 移動速度
+          float rotSpeed = glm::radians(2.0f);
 
-          glm::vec3 moveDir(0.0f);
-          if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) moveDir.z -= moveSpeed;  // 往後
-          if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) moveDir.z += moveSpeed;  // 往前
-          if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) moveDir.x -= moveSpeed;  // 往左
-          if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) moveDir.x += moveSpeed;  // 往右
-
-          // 如果有按鍵，更新矩陣
-          if (glm::length(moveDir) > 0) {
-            // 在 World Space 移動 (乘在左邊)
-            obj->transformMatrix = glm::translate(glm::mat4(1.0f), moveDir) * obj->transformMatrix;
+          glm::vec3 currentPos = glm::vec3(obj->transformMatrix[3]);
+          glm::vec3 delta(0.0f);
+          if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) delta.z -= moveSpeed; // 往後
+          if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) delta.z += moveSpeed; // 往前
+          if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) delta.x -= moveSpeed; // 往左
+          if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) delta.x += moveSpeed; // 往右
+          if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) delta.y += moveSpeed; // 往上
+          if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) delta.y -= moveSpeed; // 往下 
+          
+          // Edge detect
+          glm::vec3 nextPos = currentPos + delta;
+          if (nextPos.x <= 0.5f) nextPos.x = 0.5f;
+          if (nextPos.x >= 6.9f) nextPos.x = 6.9f;
+          if (nextPos.z <= 0.5f) nextPos.z = 0.5f;
+          if (nextPos.z >= 5.12f) nextPos.z = 5.12f;
+          if (nextPos.y <= 0.0f) nextPos.y = 0.0f;
+          if (nextPos.y >= 5.12f) nextPos.y = 5.12f;
+          obj->transformMatrix[3] = glm::vec4(nextPos, 1.0f);
+          if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
+            obj->transformMatrix = glm::rotate(obj->transformMatrix, -rotSpeed, glm::vec3(0.0f, 1.0f, 0.0f));
           }
         }
 
@@ -1007,41 +1025,40 @@ int main() {
     ImGui::NewFrame();
     // Lights control panel
     {
-      ImGui::SetNextWindowSize(ImVec2(300, 400), ImGuiCond_FirstUseEver);
       ImGui::Begin("Lights Control");
 
       // --- Directional Light ---
-      // ImGui::Text("Directional Light");
-      // {
-      //   ImGui::SameLine();
-      //   bool enable = (ctx.directionLightEnable != 0);
-      //   if (ImGui::Checkbox("Enable##dir", &enable)) ctx.directionLightEnable = enable ? 1 : 0;
-      //   ImGui::SliderFloat3("Dir X/Y/Z##dir", &ctx.directionLightDirection.x, -50.0f, 50.0f);
-      //   ImGui::ColorEdit3("Color##dir", &ctx.directionLightColor[0]);
-      // }
-      // ImGui::Separator();
+      ImGui::Text("Directional Light");
+      {
+        ImGui::SameLine();
+        bool enable = (ctx.directionLightEnable != 0);
+        if (ImGui::Checkbox("Enable##dir", &enable)) ctx.directionLightEnable = enable ? 1 : 0;
+        ImGui::SliderFloat3("Dir X/Y/Z##dir", &ctx.directionLightDirection.x, -50.0f, 50.0f);
+        ImGui::ColorEdit3("Color##dir", &ctx.directionLightColor[0]);
+      }
+      ImGui::Separator();
 
-      // // --- Point Light ---
-      // ImGui::Text("Point Light");
-      // {
-      //   ImGui::SameLine();
-      //   bool enable = (ctx.pointLightEnable != 0);
-      //   if (ImGui::Checkbox("Enable##point", &enable)) ctx.pointLightEnable = enable ? 1 : 0;
-      //   ImGui::SliderFloat3("Pos X/Y/Z##point", &ctx.pointLightPosition.x, -10.0f, 10.0f);
-      //   ImGui::ColorEdit3("Color##point", &ctx.pointLightColor[0]);
-      // }
-      // ImGui::Separator();
+      // --- Point Light ---
+      ImGui::Text("Point Light");
+      {
+        ImGui::SameLine();
+        bool enable = (ctx.pointLightEnable != 0);
+        if (ImGui::Checkbox("Enable##point", &enable)) ctx.pointLightEnable = enable ? 1 : 0;
+        ImGui::SliderFloat3("Pos X/Y/Z##point", &ctx.pointLightPosition.x, -10.0f, 10.0f);
+        ImGui::ColorEdit3("Color##point", &ctx.pointLightColor[0]);
+      }
+      ImGui::Separator();
 
-      // // --- Spot Light ---
-      // ImGui::Text("Spot Light");
-      // {
-      //   ImGui::SameLine();
-      //   bool enable = (ctx.spotLightEnable != 0);
-      //   if (ImGui::Checkbox("Enable##spot", &enable)) ctx.spotLightEnable = enable ? 1 : 0;
-      //   ImGui::SliderFloat3("Pos X/Y/Z##spot", &ctx.spotLightPosition.x, -10.0f, 10.0f);
-      //   ImGui::ColorEdit3("Color##spot", &ctx.spotLightColor[0]);
-      // }
-      // ImGui::Separator();
+      // --- Spot Light ---
+      ImGui::Text("Spot Light");
+      {
+        ImGui::SameLine();
+        bool enable = (ctx.spotLightEnable != 0);
+        if (ImGui::Checkbox("Enable##spot", &enable)) ctx.spotLightEnable = enable ? 1 : 0;
+        ImGui::SliderFloat3("Pos X/Y/Z##spot", &ctx.spotLightPosition.x, -10.0f, 10.0f);
+        ImGui::ColorEdit3("Color##spot", &ctx.spotLightColor[0]);
+      }
+      ImGui::Separator();
 
       // Time
       ImGui::Text("Time");
@@ -1095,13 +1112,17 @@ int main() {
       ImGui::Separator();
 
       {
-        const char* hint = "Use F1 to toggle cursor";
-        ImGui::Separator();
-        ImVec2 winSize = ImGui::GetWindowSize();
-        ImVec2 txtSize = ImGui::CalcTextSize(hint);
-        float y = winSize.y - txtSize.y - ImGui::GetStyle().FramePadding.y - ImGui::GetStyle().ItemSpacing.y;
-        if (y > ImGui::GetCursorPosY()) ImGui::SetCursorPosY(y);
-        ImGui::TextColored(ImVec4(0.9f, 0.9f, 0.6f, 1.0f), "%s", hint);
+        const char* hints[] = {
+            "F1 - Toggle cursor/Cancel Current choosing object",
+            "C  - Change viewsight", 
+            "E  - Display/Hide wall",
+            "WSAD - front/back/left/right",
+            "Q - upper / F - lower / R - Rotate", 
+        };
+        ImGui::Separator();  
+        for (const char* hint : hints) {
+            ImGui::TextColored(ImVec4(0.9f, 0.9f, 0.6f, 1.0f), "%s", hint);
+        }
       }
       ImGui::End();
 
@@ -1265,7 +1286,25 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int) {
         }
         break;
       }
+      case GLFW_KEY_C:{
+        Camera* cam = static_cast<Camera*>(glfwGetWindowUserPointer(window));
+        if (!isRobotView) {
+            savedPos = cam->position;
+            savedRot = cam->rotation;
+            isRobotView = true;
+        }
 
+        else {
+          isRobotView = false;
+            
+          cam->position = savedPos;
+          cam->rotation = savedRot;
+            
+          cam->updateViewMatrix();
+          std::cout << "Back to Free View" << std::endl;
+        }
+        break;
+      }
       case GLFW_KEY_E:{
         std::cout << "Key E Pressed\n";
         Enabled = !Enabled;
@@ -1288,19 +1327,19 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int) {
       case GLFW_KEY_DOWN:
         std::cout << "Down Key Pressed" << std::endl;
         robot_z = robot_z - 0.2f;
-        if (robot_z <= 0.5f) robot_z = 0.5f;
+        if (robot_z <= 0.0f) robot_z = 0.0f;
         break;
 
       case GLFW_KEY_LEFT:
         std::cout << "Left Key Pressed" << std::endl;
         robot_x = robot_x - 0.2f;
-        if (robot_x <= 0.5f) robot_x = 0.5f;
+        if (robot_x <= 0.0f) robot_x = 0.0f;
         break;
 
       case GLFW_KEY_RIGHT:
         std::cout << "Right Key Pressed" << std::endl;
         robot_x = robot_x + 0.2f;
-        if (robot_x >= 6.9f) robot_x = 6.9;
+        if (robot_x >= 8.192f) robot_x = 8.192;
         break;
     }
   }
