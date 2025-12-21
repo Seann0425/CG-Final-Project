@@ -1068,7 +1068,7 @@ int main() {
         if (ImGui::Checkbox("Enable##dir", &enable)) ctx.directionLightEnable = enable ? 1 : 0;
 
         static float time = 12.0f;
-
+        SceneTime = time;
         if (ImGui::SliderFloat("Time of Day##dir", &time, 6.0f, 18.0f, "%.1f:00")) {
           time = round(time * 6.0f) / 6.0f;  // 四捨五入到 10 分鐘
 
