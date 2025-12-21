@@ -21,6 +21,8 @@
 #include "opengl_context.h"
 #include "program.h"
 #include "utils.h"
+#include "Setting.h"
+#include "ModelDisplay.h"
 
 #include "floor_helper.h"
 #include "imgui.h"
@@ -821,6 +823,7 @@ int main() {
     glfwPollEvents();
     // Update camera position and view
     camera.move(window);
+    EnableWall(ctx, Enabled, VerticalWallModelIndex, VerticalWallModelIndex2, VerticalWallModelIndex3);
     // GL_XXX_BIT can simply "OR" together to use.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     /// TO DO Enable DepthTest
@@ -1259,6 +1262,13 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int) {
           glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
           if (cam) cam->setLastMousePos(window);
         }
+        break;
+      }
+
+      case GLFW_KEY_E:{
+        std::cout << "Key E Pressed\n";
+        Enabled = !Enabled;
+        std::cout << "Enabled = " << Enabled << "\n"; 
         break;
       }
       default:
