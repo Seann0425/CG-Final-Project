@@ -21,6 +21,8 @@
 #include "opengl_context.h"
 #include "program.h"
 #include "utils.h"
+#include "Setting.h"
+#include "ModelDisplay.h"
 
 #include "floor_helper.h"
 #include "imgui.h"
@@ -822,6 +824,7 @@ int main() {
     glfwPollEvents();
     // Update camera position and view
     camera.move(window);
+    EnableWall(ctx, Enabled, VerticalWallModelIndex, VerticalWallModelIndex2, VerticalWallModelIndex3, SceneTime);
       if (isRobotView) {
         std::cout << "in\n";
         float eyeHeight = 3.0f;
@@ -1300,6 +1303,12 @@ void keyCallback(GLFWwindow* window, int key, int, int action, int) {
           cam->updateViewMatrix();
           std::cout << "Back to Free View" << std::endl;
         }
+        break;
+      }
+      case GLFW_KEY_E:{
+        std::cout << "Key E Pressed\n";
+        Enabled = !Enabled;
+        // std::cout << "Enabled = " << Enabled << "\n"; 
         break;
       }
       default:
